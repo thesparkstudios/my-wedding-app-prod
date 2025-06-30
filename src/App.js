@@ -4,7 +4,6 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, doc, getDoc, addDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Camera, Video, Film, Plane, Image, GalleryHorizontal, HardDrive, Clock, Clapperboard, Download, Link as LinkIcon, CheckCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
-// Removed: import 'jspdf-autotable'; // No longer needed for simple PDF generation
 
 // Define Firebase configuration variables based on environment
 // eslint-disable-next-line no-var
@@ -91,9 +90,17 @@ const allInclusions = [
 // Define quote validity duration in days
 const QUOTE_VALIDITY_DAYS = 15;
 
+// Define the ADMIN_PASSWORD here. **CHANGE THIS TO A STRONG PASSWORD IN PRODUCTION**
+const ADMIN_PASSWORD = "your_secure_admin_password"; 
+
 
 // Main App component
 const App = () => {
+    // State for password protection
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+
     // State for Firebase and user
     const [firebaseDb, setFirebaseDb] = useState(null);
     const [firebaseAuth, setFirebaseAuth] = useState(null); 
@@ -211,7 +218,7 @@ const App = () => {
                         clientName: '',
                         packageName: 'Custom Package',
                         serviceType: defaultServiceType,
-                        basePrice: 0, 
+                        basePrice: 0, // Reset to 0 for manual input
                         addOns: [],
                         inclusions: allInclusions.map(inc => ({
                             id: inc.id,
@@ -241,18 +248,25 @@ const App = () => {
 
     // --- URL Handling and Quote Loading ---
     useEffect(() => {
+        // This useEffect runs once Firebase is ready and also manages client-side view based on URL.
+        // It needs to trigger password authentication if no quoteId is present.
         if (isAuthReady && firebaseDb) {
             const urlParams = new URLSearchParams(window.location.search);
             const quoteIdFromUrl = urlParams.get('quoteId');
 
             if (quoteIdFromUrl) {
+                // If quoteId is present, this is a client viewing a shared quote.
+                // We show the quote directly, no password needed for clients.
                 setCurrentQuoteId(quoteIdFromUrl);
-                setIsViewingQuote(true); // Set to true if quoteId is in URL
+                setIsViewingQuote(true); 
                 loadQuote(quoteIdFromUrl);
+                setIsAuthenticated(true); // Authenticate directly for client view
             } else {
-                setIsViewingQuote(false); // Stay false if no quoteId (creation mode)
-                setGeneratedQuoteUrl(''); // Clear any old generated URL
-                // Reset to default new quote state when no quoteId in URL
+                // If no quoteId, this is the owner accessing the app.
+                // Keep isAuthenticated as false initially to show password screen.
+                setIsViewingQuote(false); 
+                setGeneratedQuoteUrl(''); 
+                // Reset to default new quote state for owner's creation form
                 setQuoteDetails(() => {
                     const defaultServiceType = serviceOptions[2].id;
                     return {
@@ -280,6 +294,17 @@ const App = () => {
             }
         }
     }, [isAuthReady, firebaseDb, loadQuote]); 
+
+    // --- Password Authentication Logic ---
+    const handlePasswordSubmit = (e) => {
+        e.preventDefault(); // Prevent default form submission
+        if (passwordInput === ADMIN_PASSWORD) {
+            setIsAuthenticated(true);
+            setPasswordError('');
+        } else {
+            setPasswordError('Incorrect password. Please try again.');
+        }
+    };
 
     // --- Data Input Handlers ---
     const handleInputChange = (e) => {
@@ -706,455 +731,448 @@ const App = () => {
                     <p className="text-lg text-gray-600">// The Spark Studios</p>
                 </div>
 
-                {/* Quote Input Form (visible when not viewing an existing quote) */}
-                {!isViewingQuote && (
-                    <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner"> {/* Changed to bg-gray-50 */}
-                        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Create New Quote</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label htmlFor="clientName" className="block text-gray-700 text-sm font-bold mb-2">Client Name:</label>
+                {/* Conditional rendering based on authentication */}
+                {!isAuthenticated ? (
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Access Restricted</h2>
+                        <form onSubmit={handlePasswordSubmit} className="w-full max-w-sm">
+                            <div className="mb-4">
+                                <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">
+                                    Password:
+                                </label>
                                 <input
-                                    type="text"
-                                    id="clientName"
-                                    name="clientName"
-                                    value={quoteDetails.clientName}
-                                    onChange={handleInputChange}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]" // Updated focus ring color
-                                    placeholder="e.g., Jane & John Doe"
+                                    type="password"
+                                    id="password"
+                                    value={passwordInput}
+                                    onChange={(e) => setPasswordInput(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]"
+                                    placeholder="Enter password"
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="packageName" className="block text-gray-700 text-sm font-bold mb-2">Base Package Name:</label>
-                                <input
-                                    type="text"
-                                    id="packageName"
-                                    name="packageName"
-                                    value={quoteDetails.packageName}
-                                    onChange={handleInputChange}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]" // Updated focus ring color
-                                    placeholder="e.g., Gold Wedding Package"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="basePrice" className="block text-gray-700 text-sm font-bold mb-2">Base Package Price ($):</label>
-                                <input
-                                    type="number"
-                                    id="basePrice"
-                                    name="basePrice"
-                                    value={quoteDetails.basePrice}
-                                    onChange={handleInputChange}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]" // Updated focus ring color
-                                    placeholder="e.g., 4250"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Customizable Intro Message Input */}
-                        <div className="mb-4">
-                            <label htmlFor="introMessage" className="block text-gray-700 text-sm font-bold mb-2">Introductory Message:</label>
-                            <textarea
-                                id="introMessage"
-                                name="introMessage"
-                                value={quoteDetails.introMessage}
-                                onChange={handleIntroMessageChange}
-                                rows="5"
-                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583] resize-y" // Updated focus ring color
-                                placeholder="Enter your introductory message here..."
-                            ></textarea>
-                        </div>
-
-
-                        {/* Service Type Selection (Radio Buttons) */}
-                        <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Select Service Type:</h3>
-                        <div className="flex flex-wrap gap-4 mb-4">
-                            {serviceOptions.map(option => (
-                                <div key={option.id} className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        id={option.id}
-                                        name="serviceType"
-                                        value={option.id}
-                                        checked={quoteDetails.serviceType === option.id}
-                                        onChange={handleServiceTypeChange}
-                                        className="form-radio h-4 w-4 text-[#4D4583] transition duration-150 ease-in-out focus:ring-[#4D4583]" // Updated radio color
-                                    />
-                                    <label htmlFor={option.id} className="ml-2 text-gray-700 text-base flex items-center">
-                                        {option.icon && <option.icon className="w-5 h-5 mr-2 text-[#4D4583]" />} {/* Icon for Service Type */}
-                                        {option.label}
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Selectable Inclusions (Checkboxes) */}
-                        <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Base Package Inclusions (Select):</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            {quoteDetails.inclusions.map(inc => (
-                                <div key={inc.id} className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        id={`inc-${inc.id}`}
-                                        checked={inc.selected}
-                                        onChange={() => handleInclusionToggle(inc.id)}
-                                        className="form-checkbox h-4 w-4 text-[#4D4583] rounded focus:ring-[#4D4583]" // Updated checkbox color
-                                    />
-                                    <label htmlFor={`inc-${inc.id}`} className="ml-2 text-gray-700 text-base flex items-center">
-                                        {/* Find original inclusion to get the icon */}
-                                        {allInclusions.find(item => item.id === inc.id)?.icon && 
-                                         React.createElement(allInclusions.find(item => item.id === inc.id).icon, { className: "w-5 h-5 mr-2 text-[#4D4583]" })} {/* Icon for Inclusions */}
-                                        <span>{inc.text} {inc.id !== 'droneUpgrade' && inc.price !== null && inc.price !== undefined && inc.price !== 0 && <span className="text-sm text-gray-600 ml-1">(${(inc.price)})</span>}</span> {/* Exclude 0 and droneUpgrade value */}
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-
-
-                        {/* Coverage Details (Days) Input */}
-                        <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Coverage Details (Days):</h3>
-                        {quoteDetails.tableData.map((row) => (
-                            <div key={row.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3 p-3 border border-gray-300 rounded-lg bg-white shadow-sm items-end"> {/* Added border-gray-300 */}
-                                <div>
-                                    <label htmlFor={`day-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Day:</label>
-                                    <input
-                                        type="text"
-                                        id={`day-${row.id}`}
-                                        value={row.day}
-                                        onChange={(e) => handleTableDataChange(row.id, 'day', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-[#6D64A1]" // Updated focus ring color
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`hours-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Hours:</label>
-                                    <input
-                                        type="text"
-                                        id={`hours-${row.id}`}
-                                        value={row.hours}
-                                        onChange={(e) => handleTableDataChange(row.id, 'hours', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-[#6D64A1]" // Updated focus ring color
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`videographer-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Videographer:</label>
-                                    <input
-                                        type="text"
-                                        id={`videographer-${row.id}`}
-                                        value={row.videographer}
-                                        onChange={(e) => handleTableDataChange(row.id, 'videographer', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-[#6D64A1]" // Updated focus ring color
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`photographer-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Photographer:</label>
-                                    <input
-                                        type="text"
-                                        id={`photographer-${row.id}`}
-                                        value={row.photographer}
-                                        onChange={(e) => handleTableDataChange(row.id, 'photographer', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
-                                    />
-                                </div>
+                            {passwordError && <p className="text-red-500 text-sm mb-4">{passwordError}</p>}
+                            <div className="flex items-center justify-between">
                                 <button
-                                    onClick={() => handleRemoveDay(row.id)}
-                                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-sm transition duration-200"
+                                    type="submit"
+                                    className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200"
                                 >
-                                    Remove
+                                    Login
                                 </button>
                             </div>
-                        ))}
-                        <div className="flex space-x-2 mt-2">
-                            <button
-                                onClick={handleAddDay}
-                                className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-2 px-4 rounded-lg text-sm transition duration-200" // Updated button color
-                            >
-                                Add Day
-                            </button>
-                        </div>
-
-                        {/* Optional Additional Charges Input */}
-                        <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Optional Additional Charges:</h3>
-                        {quoteDetails.addOns.map((addOn) => (
-                            <div key={addOn.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3 p-3 border border-gray-300 rounded-lg bg-white shadow-sm items-end"> {/* Added border-gray-300 */}
-                                <div className="md:col-span-2">
-                                    <label htmlFor={`addon-desc-${addOn.id}`} className="block text-gray-700 text-xs font-bold mb-1">Description:</label>
-                                    <input
-                                        type="text"
-                                        id={`addon-desc-${addOn.id}`}
-                                        value={addOn.description}
-                                        onChange={(e) => handleAddOnInputChange(addOn.id, 'description', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
-                                        placeholder="e.g., Second Videographer"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`addon-price-${addOn.id}`} className="block text-gray-700 text-xs font-bold mb-1">Price ($):</label>
-                                    <input
-                                        type="number"
-                                        id={`addon-price-${addOn.id}`}
-                                        value={addOn.price}
-                                        onChange={(e) => handleAddOnInputChange(addOn.id, 'price', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`addon-hours-${addOn.id}`} className="block text-gray-700 text-xs font-bold mb-1">Hours (Optional):</label>
-                                    <input
-                                        type="number"
-                                        id={`addon-hours-${addOn.id}`}
-                                        value={addOn.hours}
-                                        onChange={(e) => handleAddOnInputChange(addOn.id, 'hours', e.target.value)}
-                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
-                                    />
-                                </div>
-                                <button
-                                    onClick={() => handleRemoveAddOn(addOn.id)}
-                                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-sm transition duration-200"
-                                >
-                                    Remove
-                                </button>
-                            </div>
-                        ))}
-                        <button
-                            onClick={handleAddAddOn}
-                            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm mt-2 transition duration-200"
-                        >
-                            Add Additional Charge
-                        </button>
-
-                        <div className="mt-6 text-center">
-                            <button
-                                onClick={saveQuote}
-                                disabled={isLoading || !firebaseDb}
-                                className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" // Updated button color
-                            >
-                                {isLoading ? (
-                                    <div className="flex items-center justify-center">
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Saving Quote...
+                        </form>
+                    </div>
+                ) : (
+                    // Main App Content (visible only if isAuthenticated is true)
+                    <>
+                        {/* Quote Input Form (visible when not viewing an existing quote) */}
+                        {!isViewingQuote && (
+                            <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner"> {/* Changed to bg-gray-50 */}
+                                <h2 className="text-2xl font-semibold text-gray-800 mb-4">Create New Quote</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label htmlFor="clientName" className="block text-gray-700 text-sm font-bold mb-2">Client Name:</label>
+                                        <input
+                                            type="text"
+                                            id="clientName"
+                                            name="clientName"
+                                            value={quoteDetails.clientName}
+                                            onChange={handleInputChange}
+                                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]" // Updated focus ring color
+                                            placeholder="e.g., Jane & John Doe"
+                                        />
                                     </div>
-                                ) : (
-                                    'Save Quote & Generate Link'
-                                )}
-                            </button>
-                            {apiError && <p className="text-red-500 mt-3">{apiError}</p>}
-                        </div>
-
-                        {/* Create New Quote button (ONLY visible in the input form for the owner) */}
-                        <div className="mt-8 text-center border-t pt-6 border-gray-200">
-                                <button
-                                    onClick={() => {
-                                        setIsViewingQuote(false); // Ensure we are in input mode
-                                        setCurrentQuoteId('');
-                                        setGeneratedQuoteUrl(''); // Clear generated URL
-                                        // Reset to default new quote state
-                                        const defaultServiceType = serviceOptions[2].id;
-                                        const defaultBasePrice = 0; // Base price is manually set
-                                        setQuoteDetails({ 
-                                            clientName: '',
-                                            packageName: 'Custom Package',
-                                            serviceType: defaultServiceType,
-                                            basePrice: defaultBasePrice,
-                                            addOns: [],
-                                            inclusions: [
-                                                { id: 'droneUpgrade', text: 'Drone upgrade included', price: 450, selected: false, icon: Plane },
-                                                { id: 'highRes', text: 'High-resolution Photos and Videos', selected: true, icon: Image },
-                                                { id: 'unlimitedEditedPhotos', text: 'Unlimited edited photos', selected: false, icon: GalleryHorizontal },
-                                                { id: 'rawPhotos', text: 'Raw photos', selected: false, icon: HardDrive },
-                                                { id: 'shootsWithinTimeframe', text: 'Photo shoots and video shoots within the above-mentioned time frame', selected: true, icon: Clock },
-                                                { id: 'highlightsFilm', text: '1 combined or separate wedding highlights film of all the events', selected: true, icon: Clapperboard },
-                                                { id: 'fullLengthVideo', text: 'Separate full-length edited video of the day', selected: true, icon: Video },
-                                                { id: 'onlineDeliveryApproval', text: 'Online videos or/and photos delivery for approval', selected: true, icon: LinkIcon },
-                                                { id: 'finalDelivery', text: 'Final videos or/and photos delivered in an online link', selected: true, icon: Download },
-                                            ],
-                                            tableData: [
-                                                { id: Date.now(), day: 'Day 1', hours: '4 hours', videographer: '1 Videographer (2 cameras)', photographer: '1 Photographer' },
-                                                { id: Date.now() + 1, day: 'Day 2', hours: '10 hours', videographer: '1 Videographer (2 cameras)', photographer: '1 Photographer' }
-                                            ],
-                                            companyEmail: 'info@thesparkstudios.ca'
-                                        });
-                                    }}
-                                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300"
-                                >
-                                    Create New Quote
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Display Area for Quote Details (visible when viewing an existing quote or after saving) */}
-                {(isViewingQuote || generatedQuoteUrl) && (
-                    <div className="mb-8 p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-                        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                            Quote for <span className="text-[#4D4583]">{quoteDetails.clientName}</span> {/* Updated text color */}
-                        </h2>
-
-                        {/* Polished Quote URL Display - ONLY visible when *just created* a quote (not viewing existing) */}
-                        {generatedQuoteUrl && !isViewingQuote && ( 
-                            <div className="bg-[#EFEFF5] border-l-4 border-[#4D4583] text-gray-800 p-4 rounded-lg shadow-md mb-6 transition duration-300 ease-in-out flex items-center justify-between"> {/* Updated colors */}
-                                <div className="flex-grow min-w-0">
-                                    <p className="font-semibold text-sm mb-1">Share this professional quote link:</p>
-                                    <a href={generatedQuoteUrl} target="_blank" rel="noopener noreferrer" className="break-all text-[#4D4583] hover:underline font-mono text-xs md:text-sm whitespace-nowrap overflow-hidden text-ellipsis block pr-2"> {/* Updated text color */}
-                                        {generatedQuoteUrl}
-                                    </a>
+                                    <div>
+                                        <label htmlFor="packageName" className="block text-gray-700 text-sm font-bold mb-2">Base Package Name:</label>
+                                        <input
+                                            type="text"
+                                            id="packageName"
+                                            name="packageName"
+                                            value={quoteDetails.packageName}
+                                            onChange={handleInputChange}
+                                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]" // Updated focus ring color
+                                            placeholder="e.g., Gold Wedding Package"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="basePrice" className="block text-gray-700 text-sm font-bold mb-2">Base Package Price ($):</label>
+                                        <input
+                                            type="number"
+                                            id="basePrice"
+                                            name="basePrice"
+                                            value={quoteDetails.basePrice}
+                                            onChange={handleInputChange}
+                                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583]" // Updated focus ring color
+                                            placeholder="e.g., 4250"
+                                        />
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={() => copyToClipboard(generatedQuoteUrl)}
-                                    className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-semibold py-1.5 px-3 rounded-md text-sm shadow-sm transition duration-200 ease-in-out flex-shrink-0 ml-4" // Updated button color
-                                    title="Copy Link to Clipboard"
-                                >
-                                    Copy Link
-                                </button>
-                            </div>
-                        )}
 
-                        {/* Validity Ticker */}
-                        <div className={`text-center text-lg font-bold p-3 rounded-lg mb-6 ${quoteExpired ? 'bg-red-100 text-red-700' : 'bg-[#EFEFF5] text-[#4D4583]'}`}> {/* Updated colors */}
-                            {quoteExpired ? (
-                                "Quote has Expired."
-                            ) : (
-                                `Quote valid for next ${QUOTE_VALIDITY_DAYS} days.` // Removed "Days Remaining"
-                            )}
-                        </div>
-
-                        <p className="text-gray-700 text-lg leading-relaxed mb-2">
-                            Hi <span className="font-semibold text-gray-900">{quoteDetails.clientName}</span>,
-                        </p>
-                        <p className="text-gray-700 text-lg leading-relaxed mt-2 mb-6 whitespace-pre-wrap">
-                            {quoteDetails.introMessage} {/* Dynamic intro message */}
-                        </p>
-
-                        {/* Service Type - on Quote Page (No Price) */}
-                        <div className="bg-gradient-to-r from-gray-50 to-[#F5F5F9] p-6 rounded-lg mb-8 shadow-inner"> {/* Updated background gradient */}
-                            <h2 className="text-2xl font-semibold text-[#4D4583] mb-4">Service Type:</h2> {/* Updated text color */}
-                            <p className="text-lg text-gray-700 mb-2 flex items-center">
-                                Service Selected: <span className="font-semibold text-gray-900 ml-2">
-                                    {/* Ensure serviceOptions is available on load and find the label */}
-                                    {serviceOptions.find(opt => opt.id === quoteDetails.serviceType)?.icon && 
-                                     React.createElement(serviceOptions.find(opt => opt.id === quoteDetails.serviceType).icon, { className: "w-6 h-6 mr-2 text-[#4D4583]" })}
-                                    {serviceOptions.find(opt => opt.id === quoteDetails.serviceType)?.label || 'N/A'}
-                                </span>
-                            </p>
-                            {/* Base Price is removed from the display here as requested */}
-                        </div>
-
-                        {/* Selected Inclusions */}
-                        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Following is included in the package:</h2> {/* Changed heading */}
-                            <ul className="list-disc list-inside text-gray-700 text-lg space-y-2">
-                                {quoteDetails.inclusions.filter(inc => inc.selected).length > 0 ? (
-                                    quoteDetails.inclusions.filter(inc => inc.selected).map((item) => (
-                                        <li key={item.id} className="flex items-center">
-                                            {/* Find original inclusion to get the icon */}
-                                            {allInclusions.find(original => original.id === item.id)?.icon && 
-                                             React.createElement(allInclusions.find(original => original.id === item.id).icon, { className: "w-5 h-5 mr-2 text-[#4D4583]" })} {/* Updated icon color */}
-                                            {/* Removed price display for droneUpgrade and if price is 0/null */}
-                                            <span>{item.text} {item.id !== 'droneUpgrade' && item.price !== null && item.price !== undefined && item.price !== 0 && <span className="text-sm text-gray-600 ml-1">(${(item.price)})</span>}</span> 
-                                        </li>
-                                    ))
-                                ) : (
-                                    <p className="text-gray-500">No additional inclusions selected for the base package.</p>
-                                )}
-                            </ul>
-                        </div>
+                                {/* Customizable Intro Message Input */}
+                                <div className="mb-4">
+                                    <label htmlFor="introMessage" className="block text-gray-700 text-sm font-bold mb-2">Introductory Message:</label>
+                                    <textarea
+                                        id="introMessage"
+                                        name="introMessage"
+                                        value={quoteDetails.introMessage}
+                                        onChange={handleIntroMessageChange}
+                                        rows="5"
+                                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#4D4583] resize-y" // Updated focus ring color
+                                        placeholder="Enter your introductory message here..."
+                                    ></textarea>
+                                </div>
 
 
-                        {/* Coverage Table */}
-                        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Coverage Details (Days):</h2>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full bg-white border border-gray-300 rounded-lg">
-                                    <thead>
-                                        <tr className="bg-gray-100 text-left text-gray-600 uppercase text-sm leading-normal">
-                                            <th className="py-3 px-6 border-b border-gray-300 rounded-tl-lg">Day</th>
-                                            <th className="py-3 px-6 border-b border-gray-300">Hours</th>
-                                            <th className="py-3 px-6 border-b border-gray-300">Videographer</th>
-                                            <th className="py-3 px-6 border-b border-gray-300 rounded-tr-lg">Photographer</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="text-gray-700 text-base font-light">
-                                        {quoteDetails.tableData.map((row) => (
-                                            <tr key={row.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                                <td className="py-3 px-6 whitespace-nowrap">{row.day}</td>
-                                                <td className="py-3 px-6 whitespace-nowrap">{row.hours}</td>
-                                                <td className="py-3 px-6 whitespace-nowrap">{row.videographer}</td>
-                                                <td className="py-3 px-6 whitespace-nowrap">{row.photographer}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Optional Add-ons and Total Price */}
-                        {quoteDetails.addOns.length > 0 && (
-                            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
-                                <h3 className="text-2xl font-semibold text-gray-800 mb-4">Optional Additional Charges:</h3>
-                                <ul className="list-disc list-inside text-gray-700 text-lg space-y-2 mb-6">
-                                    {quoteDetails.addOns.map(addOn => (
-                                        <li key={addOn.id} className="flex items-center">
-                                            <svg className="w-5 h-5 text-[#4D4583] mr-2" fill="currentColor" viewBox="0 0 20 20"> {/* Updated icon color */}
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                                            </svg>
-                                            <span>{addOn.description} <span className="font-semibold">${addOn.price}/{addOn.hours} hours</span></span>
-                                        </li>
+                                {/* Service Type Selection (Radio Buttons) */}
+                                <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Select Service Type:</h3>
+                                <div className="flex flex-wrap gap-4 mb-4">
+                                    {serviceOptions.map(option => (
+                                        <div key={option.id} className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                id={option.id}
+                                                name="serviceType"
+                                                value={option.id}
+                                                checked={quoteDetails.serviceType === option.id}
+                                                onChange={handleServiceTypeChange}
+                                                className="form-radio h-4 w-4 text-[#4D4583] transition duration-150 ease-in-out focus:ring-[#4D4583]" // Updated radio color
+                                            />
+                                            <label htmlFor={option.id} className="ml-2 text-gray-700 text-base flex items-center">
+                                                {option.icon && <option.icon className="w-5 h-5 mr-2 text-[#4D4583]" />} {/* Icon for Service Type */}
+                                                {option.label}
+                                            </label>
+                                        </div>
                                     ))}
-                                </ul>
-                            </div>
-                        )}
-                        {!quoteDetails.addOns.length && (
-                             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm text-center text-gray-500 mb-8">
-                                 <p>No optional additional charges selected for this quote.</p>
-                             </div>
-                        )}
+                                </div>
 
-                        {/* Final Pricing Summary */}
-                        <div className="bg-[#F5F5F9] p-6 rounded-lg border border-gray-200 shadow-inner"> {/* Updated background color */}
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Pricing Summary:</h2>
-                            <div className="flex justify-between items-center text-lg text-gray-700 mb-2">
-                                <span>Total Package:</span> {/* Changed label */}
-                                <span className="font-semibold text-[#4D4583]">${quoteDetails.basePrice}</span> {/* Updated text color */}
-                            </div>
-                            <div className="flex justify-between items-center text-lg text-gray-700 mb-4">
-                                <span>With Add-on(s):</span> {/* Changed label */}
-                                <span className="font-semibold text-[#4D4583]"> {/* Updated text color */}
-                                    ${(calculateTotalWithAddOns() - quoteDetails.basePrice)}
-                                </span>
-                            </div>
-                            <div className="text-right border-t pt-4 border-gray-300">
-                                <p className="text-3xl font-bold text-gray-900">
-                                    Final Estimated Total: <span className="text-[#4D4583]">${calculateTotalWithAddOns()}<span className="text-base align-super">+HST</span></span> {/* Smaller +HST */}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        {/* PDF Download Button - Only visible on the quote display page */}
-                        {isViewingQuote && ( // Only show if viewing a quote (not creating)
-                            <div className="mt-8 text-center border-t pt-6 border-gray-200">
+                                {/* Selectable Inclusions (Checkboxes) */}
+                                <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Base Package Inclusions (Select):</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                    {quoteDetails.inclusions.map(inc => (
+                                        <div key={inc.id} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`inc-${inc.id}`}
+                                                checked={inc.selected}
+                                                onChange={() => handleInclusionToggle(inc.id)}
+                                                className="form-checkbox h-4 w-4 text-[#4D4583] rounded focus:ring-[#4D4583]" // Updated checkbox color
+                                            />
+                                            <label htmlFor={`inc-${inc.id}`} className="ml-2 text-gray-700 text-base flex items-center">
+                                                {/* Find original inclusion to get the icon */}
+                                                {allInclusions.find(item => item.id === inc.id)?.icon && 
+                                                 React.createElement(allInclusions.find(item => item.id === inc.id).icon, { className: "w-5 h-5 mr-2 text-[#4D4583]" })} {/* Icon for Inclusions */}
+                                                <span>{inc.text} {inc.id !== 'droneUpgrade' && inc.price !== null && inc.price !== undefined && inc.price !== 0 && <span className="text-sm text-gray-600 ml-1">(${(inc.price)})</span>}</span> {/* Exclude 0 and droneUpgrade value */}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+
+
+                                {/* Coverage Details (Days) Input */}
+                                <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Coverage Details (Days):</h3>
+                                {quoteDetails.tableData.map((row) => (
+                                    <div key={row.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3 p-3 border border-gray-300 rounded-lg bg-white shadow-sm items-end"> {/* Added border-gray-300 */}
+                                        <div>
+                                            <label htmlFor={`day-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Day:</label>
+                                            <input
+                                                type="text"
+                                                id={`day-${row.id}`}
+                                                value={row.day}
+                                                onChange={(e) => handleTableDataChange(row.id, 'day', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-[#6D64A1]" // Updated focus ring color
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`hours-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Hours:</label>
+                                            <input
+                                                type="text"
+                                                id={`hours-${row.id}`}
+                                                value={row.hours}
+                                                onChange={(e) => handleTableDataChange(row.id, 'hours', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-[#6D64A1]" // Updated focus ring color
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`videographer-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Videographer:</label>
+                                            <input
+                                                type="text"
+                                                id={`videographer-${row.id}`}
+                                                value={row.videographer}
+                                                onChange={(e) => handleTableDataChange(row.id, 'videographer', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-[#6D64A1]" // Updated focus ring color
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`photographer-${row.id}`} className="block text-gray-700 text-xs font-bold mb-1">Photographer:</label>
+                                            <input
+                                                type="text"
+                                                id={`photographer-${row.id}`}
+                                                value={row.photographer}
+                                                onChange={(e) => handleTableDataChange(row.id, 'photographer', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveDay(row.id)}
+                                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-sm transition duration-200"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                                <div className="flex space-x-2 mt-2">
+                                    <button
+                                        onClick={handleAddDay}
+                                        className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-2 px-4 rounded-lg text-sm transition duration-200" // Updated button color
+                                    >
+                                        Add Day
+                                    </button>
+                                </div>
+
+                                {/* Optional Additional Charges Input */}
+                                <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-4">Optional Additional Charges:</h3>
+                                {quoteDetails.addOns.map((addOn) => (
+                                    <div key={addOn.id} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-3 p-3 border border-gray-300 rounded-lg bg-white shadow-sm items-end"> {/* Added border-gray-300 */}
+                                        <div className="md:col-span-2">
+                                            <label htmlFor={`addon-desc-${addOn.id}`} className="block text-gray-700 text-xs font-bold mb-1">Description:</label>
+                                            <input
+                                                type="text"
+                                                id={`addon-desc-${addOn.id}`}
+                                                value={addOn.description}
+                                                onChange={(e) => handleAddOnInputChange(addOn.id, 'description', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
+                                                placeholder="e.g., Second Videographer"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`addon-price-${addOn.id}`} className="block text-gray-700 text-xs font-bold mb-1">Price ($):</label>
+                                            <input
+                                                type="number"
+                                                id={`addon-price-${addOn.id}`}
+                                                value={addOn.price}
+                                                onChange={(e) => handleAddOnInputChange(addOn.id, 'price', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`addon-hours-${addOn.id}`} className="block text-gray-700 text-xs font-bold mb-1">Hours (Optional):</label>
+                                            <input
+                                                type="number"
+                                                id={`addon-hours-${addOn.id}`}
+                                                value={addOn.hours}
+                                                onChange={(e) => handleAddOnInputChange(addOn.id, 'hours', e.target.value)}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveAddOn(addOn.id)}
+                                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-sm transition duration-200"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
                                 <button
-                                    onClick={generatePdf}
-                                    className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                    onClick={handleAddAddOn}
+                                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm mt-2 transition duration-200"
                                 >
-                                    Download Quote (PDF)
+                                    Add Additional Charge
                                 </button>
+
+                                <div className="mt-6 text-center">
+                                    <button
+                                        onClick={saveQuote}
+                                        disabled={isLoading || !firebaseDb}
+                                        className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" // Updated button color
+                                    >
+                                        {isLoading ? (
+                                            <div className="flex items-center justify-center">
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Saving Quote...
+                                            </div>
+                                        ) : (
+                                            'Save Quote & Generate Link'
+                                        )}
+                                    </button>
+                                    {apiError && <p className="text-red-500 mt-3">{apiError}</p>}
+                                </div>
                             </div>
                         )}
-                    </div>
-                )}
 
-                {/* Footer Section */}
-                <div className="mt-8 text-center border-t pt-6 border-gray-200">
-                    <p className="text-gray-700 text-lg leading-relaxed mb-4">
-                        If you have any questions, feel free to reach out.
-                    </p>
-                    <p className="text-xl font-semibold text-gray-800">Best regards,</p>
-                    <p className="text-lg text-gray-700">The Spark Studios</p>
-                    <a href={`mailto:${quoteDetails.companyEmail}`} className="text-[#4D4583] hover:underline text-lg"> {/* Updated link color */}
-                        {quoteDetails.companyEmail}
-                    </a>
-                </div>
+                        {/* Display Area for Quote Details (visible when viewing an existing quote or after saving) */}
+                        {(isViewingQuote || generatedQuoteUrl) && (
+                            <div className="mb-8 p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                                    Quote for <span className="text-[#4D4583]">{quoteDetails.clientName}</span> {/* Updated text color */}
+                                </h2>
+
+                                {/* Polished Quote URL Display - ONLY visible when *just created* a quote (not viewing existing) */}
+                                {generatedQuoteUrl && !isViewingQuote && ( 
+                                    <div className="bg-[#EFEFF5] border-l-4 border-[#4D4583] text-gray-800 p-4 rounded-lg shadow-md mb-6 transition duration-300 ease-in-out flex items-center justify-between"> {/* Updated colors */}
+                                        <div className="flex-grow min-w-0">
+                                            <p className="font-semibold text-sm mb-1">Share this professional quote link:</p>
+                                            <a href={generatedQuoteUrl} target="_blank" rel="noopener noreferrer" className="break-all text-[#4D4583] hover:underline font-mono text-xs md:text-sm whitespace-nowrap overflow-hidden text-ellipsis block pr-2"> {/* Updated text color */}
+                                                {generatedQuoteUrl}
+                                            </a>
+                                        </div>
+                                        <button
+                                            onClick={() => copyToClipboard(generatedQuoteUrl)}
+                                            className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-semibold py-1.5 px-3 rounded-md text-sm shadow-sm transition duration-200 ease-in-out flex-shrink-0 ml-4" // Updated button color
+                                            title="Copy Link to Clipboard"
+                                        >
+                                            Copy Link
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Validity Ticker */}
+                                <div className={`text-center text-lg font-bold p-3 rounded-lg mb-6 ${quoteExpired ? 'bg-red-100 text-red-700' : 'bg-[#EFEFF5] text-[#4D4583]'}`}> {/* Updated colors */}
+                                    {quoteExpired ? (
+                                        "Quote has Expired."
+                                    ) : (
+                                        `Quote valid for next ${QUOTE_VALIDITY_DAYS} days.` // Removed "Days Remaining"
+                                    )}
+                                </div>
+
+                                <p className="text-gray-700 text-lg leading-relaxed mb-2">
+                                    Hi <span className="font-semibold text-gray-900">{quoteDetails.clientName}</span>,
+                                </p>
+                                <p className="text-gray-700 text-lg leading-relaxed mt-2 mb-6 whitespace-pre-wrap">
+                                    {quoteDetails.introMessage} {/* Dynamic intro message */}
+                                </p>
+
+                                {/* Service Type - on Quote Page (No Price) */}
+                                <div className="bg-gradient-to-r from-gray-50 to-[#F5F5F9] p-6 rounded-lg mb-8 shadow-inner"> {/* Updated background gradient */}
+                                    <h2 className="text-2xl font-semibold text-[#4D4583] mb-4">Service Type:</h2> {/* Updated text color */}
+                                    <p className="text-lg text-gray-700 mb-2 flex items-center">
+                                        Service Selected: <span className="font-semibold text-gray-900 ml-2">
+                                            {/* Ensure serviceOptions is available on load and find the label */}
+                                            {serviceOptions.find(opt => opt.id === quoteDetails.serviceType)?.icon && 
+                                             React.createElement(serviceOptions.find(opt => opt.id === quoteDetails.serviceType).icon, { className: "w-6 h-6 mr-2 text-[#4D4583]" })}
+                                            {serviceOptions.find(opt => opt.id === quoteDetails.serviceType)?.label || 'N/A'}
+                                        </span>
+                                    </p>
+                                    {/* Base Price is removed from the display here as requested */}
+                                </div>
+
+                                {/* Selected Inclusions */}
+                                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
+                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Following is included in the package:</h2> {/* Changed heading */}
+                                    <ul className="list-disc list-inside text-gray-700 text-lg space-y-2">
+                                        {quoteDetails.inclusions.filter(inc => inc.selected).length > 0 ? (
+                                            quoteDetails.inclusions.filter(inc => inc.selected).map((item) => (
+                                                <li key={item.id} className="flex items-center">
+                                                    {/* Find original inclusion to get the icon */}
+                                                    {allInclusions.find(original => original.id === item.id)?.icon && 
+                                                     React.createElement(allInclusions.find(original => original.id === item.id).icon, { className: "w-5 h-5 mr-2 text-[#4D4583]" })} {/* Updated icon color */}
+                                                    {/* Removed price display for droneUpgrade and if price is 0/null */}
+                                                    <span>{item.text} {item.id !== 'droneUpgrade' && item.price !== null && item.price !== undefined && item.price !== 0 && <span className="text-sm text-gray-600 ml-1">(${(item.price)})</span>}</span> 
+                                                </li>
+                                            ))
+                                        ) : (
+                                            <p className="text-gray-500">No additional inclusions selected for the base package.</p>
+                                        )}
+                                    </ul>
+                                </div>
+
+
+                                {/* Coverage Table */}
+                                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
+                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Coverage Details (Days):</h2>
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full bg-white border border-gray-300 rounded-lg">
+                                            <thead>
+                                                <tr className="bg-gray-100 text-left text-gray-600 uppercase text-sm leading-normal">
+                                                    <th className="py-3 px-6 border-b border-gray-300 rounded-tl-lg">Day</th>
+                                                    <th className="py-3 px-6 border-b border-gray-300">Hours</th>
+                                                    <th className="py-3 px-6 border-b border-gray-300">Videographer</th>
+                                                    <th className="py-3 px-6 border-b border-gray-300 rounded-tr-lg">Photographer</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-gray-700 text-base font-light">
+                                                {quoteDetails.tableData.map((row) => (
+                                                    <tr key={row.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                                        <td className="py-3 px-6 whitespace-nowrap">{row.day}</td>
+                                                        <td className="py-3 px-6 whitespace-nowrap">{row.hours}</td>
+                                                        <td className="py-3 px-6 whitespace-nowrap">{row.videographer}</td>
+                                                        <td className="py-3 px-6 whitespace-nowrap">{row.photographer}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Optional Add-ons and Total Price */}
+                                {quoteDetails.addOns.length > 0 && (
+                                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
+                                        <h3 className="text-2xl font-semibold text-gray-800 mb-4">Optional Additional Charges:</h3>
+                                        <ul className="list-disc list-inside text-gray-700 text-lg space-y-2 mb-6">
+                                            {quoteDetails.addOns.map(addOn => (
+                                                <li key={addOn.id} className="flex items-center">
+                                                    <svg className="w-5 h-5 text-[#4D4583] mr-2" fill="currentColor" viewBox="0 0 20 20"> {/* Updated icon color */}
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                                                    </svg>
+                                                    <span>{addOn.description} <span className="font-semibold">${addOn.price}/{addOn.hours} hours</span></span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {!quoteDetails.addOns.length && (
+                                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm text-center text-gray-500 mb-8">
+                                         <p>No optional additional charges selected for this quote.</p>
+                                     </div>
+                                )}
+
+                                {/* Final Pricing Summary */}
+                                <div className="bg-[#F5F5F9] p-6 rounded-lg border border-gray-200 shadow-inner"> {/* Updated background color */}
+                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Pricing Summary:</h2>
+                                    <div className="flex justify-between items-center text-lg text-gray-700 mb-2">
+                                        <span>Total Package:</span> {/* Changed label */}
+                                        <span className="font-semibold text-[#4D4583]">${quoteDetails.basePrice}</span> {/* Updated text color */}
+                                    </div>
+                                    <div className="flex justify-between items-center text-lg text-gray-700 mb-4">
+                                        <span>With Add-on(s):</span> {/* Changed label */}
+                                        <span className="font-semibold text-[#4D4583]"> {/* Updated text color */}
+                                            ${(calculateTotalWithAddOns() - quoteDetails.basePrice)}
+                                        </span>
+                                    </div>
+                                    <div className="text-right border-t pt-4 border-gray-300">
+                                        <p className="text-3xl font-bold text-gray-900">
+                                            Final Estimated Total: <span className="text-[#4D4583]">${calculateTotalWithAddOns()}<span className="text-base align-super">+HST</span></span> {/* Smaller +HST */}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {/* PDF Download Button - Only visible on the quote display page */}
+                                {isViewingQuote && ( 
+                                    <div className="mt-8 text-center border-t pt-6 border-gray-200">
+                                        <button
+                                            onClick={generatePdf}
+                                            className="bg-[#4D4583] hover:bg-[#6D64A1] text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                        >
+                                            Download Quote (PDF)
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Footer Section */}
+                        <div className="mt-8 text-center border-t pt-6 border-gray-200">
+                            <p className="text-gray-700 text-lg leading-relaxed mb-4">
+                                If you have any questions, feel free to reach out.
+                            </p>
+                            <p className="text-xl font-semibold text-gray-800">Best regards,</p>
+                            <p className="text-lg text-gray-700">The Spark Studios</p>
+                            <a href={`mailto:${quoteDetails.companyEmail}`} className="text-[#4D4583] hover:underline text-lg"> {/* Updated link color */}
+                                {quoteDetails.companyEmail}
+                            </a>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
