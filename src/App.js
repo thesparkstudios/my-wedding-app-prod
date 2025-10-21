@@ -185,6 +185,11 @@ const App = () => {
         const params = new URLSearchParams(window.location.search);
         const quoteId = params.get('quoteId');
         if (quoteId) {
+            if (firebaseInitializationError) {
+                setError("Cannot load quote in offline mode.");
+                setCurrentView('configurator');
+                return;
+            }
             setIsAuthenticated(true); // Clients with a link bypass the password screen
             loadQuote(quoteId);
         } else {
@@ -302,7 +307,6 @@ const App = () => {
     };
     
     // --- Render Logic ---
-    if (firebaseInitializationError) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-red-400 p-4">{firebaseInitializationError}</div>;
     if (currentView === 'loading' || !isAuthReady) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-400">Loading Configurator...</div>;
     
     if (!isAuthenticated) {
@@ -340,13 +344,20 @@ const App = () => {
             <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
                 <div className="max-w-screen-2xl mx-auto">
                     <AppHeader title="Quote Configurator" subtitle="Configure up to three packages for your client." />
+
+                    {firebaseInitializationError && (
+                        <div className="mb-8 p-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 rounded-xl max-w-4xl mx-auto text-center">
+                            <p className="font-semibold">Offline Mode</p>
+                            <p className="text-sm text-yellow-400">{firebaseInitializationError}</p>
+                        </div>
+                    )}
                     
                     <div className="mb-8 p-6 bg-gray-800/50 rounded-xl border border-gray-700 max-w-4xl mx-auto">
                         <h2 className="text-xl font-semibold mb-4 text-amber-400">Client Details</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" placeholder="Client Name" value={clientDetails.name} onChange={e => setClientDetails(c => ({...c, name: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
                             <input type="email" placeholder="Client Email" value={clientDetails.email} onChange={e => setClientDetails(c => ({...c, email: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
-                            <button onClick={handleGenerateQuote} disabled={isLoading || !!firebaseInitializationError} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50">
+                            <button onClick={handleGenerateQuote} disabled={isLoading || !!firebaseInitializationError} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isLoading ? 'Generating...' : 'Generate Client Quote Link'}
                             </button>
                         </div>
