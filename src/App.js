@@ -1,371 +1,385 @@
-import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, addDoc, collection } from 'firebase/firestore';
+import React, { useEffect, useMemo, useState } from "react";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, getDoc, addDoc, collection } from "firebase/firestore";
 
-// --- Firebase Configuration ---
-var __firebase_config;
-var __app_id;
-var __initial_auth_token;
+/**
+ * Spark Studios – Quote Configurator (Visual Refresh)
+ * - Dark, luxury aesthetic
+ * - Clear sectioning + cards
+ * - Middle package emphasized visually in client view
+ * - Manual pricing only
+ * - Same Firestore link generation flow you had
+ */
 
-let app;
-let auth;
-let db;
+// ===== Firebase Boot =====
+// These may be injected or read from env. We keep your fallbacks.
+// eslint-disable-next-line no-var
+var __firebase_config; // injected optionally
+// eslint-disable-next-line no-var
+var __app_id; // injected optionally
+// eslint-disable-next-line no-var
+var __initial_auth_token; // injected optionally
+
+let app, auth, db;
 let firebaseInitializationError = null;
 
 try {
-    let firebaseConfig;
-    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-        firebaseConfig = JSON.parse(__firebase_config);
-    } else if (process.env.REACT_APP_FIREBASE_API_KEY) {
-        firebaseConfig = {
-            apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-            authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.REACT_APP_FIREBASE_APP_ID,
-            measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
-        };
-    } else {
-        throw new Error("Firebase configuration was not provided by the environment.");
-    }
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        throw new Error("Firebase config is missing apiKey or projectId.");
-    }
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
+  let firebaseConfig;
+  if (typeof __firebase_config !== "undefined" && __firebase_config) {
+    firebaseConfig = JSON.parse(__firebase_config);
+  } else if (process.env.REACT_APP_FIREBASE_API_KEY) {
+    firebaseConfig = {
+      apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+      authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.REACT_APP_FIREBASE_APP_ID,
+      measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
+    };
+  } else {
+    throw new Error("Firebase configuration was not provided by the environment.");
+  }
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) throw new Error("Firebase config is missing apiKey or projectId.");
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
 } catch (e) {
-    console.error("FATAL: Firebase initialization failed.", e);
-    firebaseInitializationError = e.message;
+  console.error("FATAL: Firebase initialization failed.", e);
+  firebaseInitializationError = e.message;
 }
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+const initialAuthToken = typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
 
-// --- Helper Components & Initial State ---
-const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
-const AppHeader = ({ title, subtitle }) => (<div className="text-center mb-10"><h1 className="text-4xl md:text-5xl font-bold text-amber-400">{title}</h1><p className="text-lg text-gray-400 mt-2">{subtitle}</p></div>);
+// ===== UI Bits =====
+const IconCheck = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+);
+const IconPlus = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+);
+const Badge = ({ children }) => (
+  <span className="inline-flex items-center rounded-full bg-amber-400 text-black text-[10px] font-bold px-2 py-1 uppercase tracking-wider">{children}</span>
+);
 
-const allInclusions = [
-    'Unlimited professionally edited photos',
-    'Cinematic Highlight Film (3–5 min)',
-    'Full Feature Film (Full Day Edit)',
-    'Online Gallery + Delivery (3–6 months)',
-    'Drone',
-    'E-Shoot',
-    'Content Creation (for Reels/TikToks)',
-    'Albums',
-    'Drone Coverage included',
-    'Engagement E-Shoot (1 hour)',
-    'Online Gallery + Delivery (within 3 months)',
-    'Luxury Keepsake Box (USB + 20 Fine Art Prints)',
-    'Priority Editing Delivery (within 2 months)'
+// ===== Data =====
+const ALL_INCLUSIONS = [
+  "Unlimited professionally edited photos",
+  "Cinematic Highlight Film (3–5 min)",
+  "Full Feature Film (Full Day Edit)",
+  "Online Gallery + Delivery (3–6 months)",
+  "Drone",
+  "E‑Shoot",
+  "Content Creation (Reels/TikTok)",
+  "Album (Premium Layflat)",
+  "Luxury Keepsake Box (USB + 20 Fine Art Prints)",
+  "Priority Editing Delivery",
 ];
 
-const faqData = [
-    { q: "What happens before the event?", a: "Before your event takes place, we'll discuss the flow of the day and all the major details that will help our videographers and photographers capture everything perfectly. Any references for photoshoots, highlights, or mood boards should also be discussed during this stage." },
-    { q: "How does the payment work?", a: "Ideally, we'd like to receive at least 30% of the total amount as soon as possible to secure your event date. The remaining balance can be paid on the day of the event." },
-    { q: "When do you get the pictures and video?", a: "Our work begins right after your payment has been cleared, unless we've discussed a different arrangement. Our typical delivery time is between 3 to 6 months. While sometimes delivery can be much earlier, it's almost never delayed. Generally, pictures are delivered sooner than the video." },
-    { q: "Want to book us?", a: "To finalize your booking, we'll ask you to fill out a contract. This document will clearly outline everything we've discussed, including prices, delivery times, booking fees, and all other terms. We look forward to the opportunity to work with you and help make your wedding memories truly unforgettable." }
+const FAQ = [
+  { q: "What happens before the event?", a: "We meet to align on timeline, style, and must‑have moments. Share references and mood boards here." },
+  { q: "How does payment work?", a: "30% retainer to secure the date. Remaining balance due on the event day unless otherwise agreed." },
+  { q: "When do we receive everything?", a: "Typical delivery in 3–6 months. Photos usually arrive earlier than video; we keep you posted." },
+  { q: "How do we book?", a: "We’ll finalize with a simple contract covering pricing, deliverables, and timelines." },
 ];
 
-
-const getNewPackage = (name) => ({
-    id: Date.now() + Math.random(),
-    name: name,
-    days: [{ id: Date.now() + Math.random(), name: 'Wedding Day', hours: '', photographers: '', videographers: '' }],
-    inclusions: allInclusions.reduce((acc, inclusion) => ({...acc, [inclusion]: false }), {}),
-    price: ''
+const newDay = () => ({ id: crypto.randomUUID(), name: "Wedding Day", hours: "", photographers: "", videographers: "" });
+const newPackage = (name) => ({
+  id: crypto.randomUUID(),
+  name,
+  days: [newDay()],
+  inclusions: ALL_INCLUSIONS.reduce((acc, k) => ({ ...acc, [k]: false }), {}),
+  price: "",
 });
 
-const initialPackages = [getNewPackage('Package 1'), getNewPackage('Package 2'), getNewPackage('Package 3')];
+const initialPackages = [newPackage("Essential"), newPackage("Classic"), newPackage("Signature")];
 
-// --- Main App Component ---
-const App = () => {
-    // App state
-    const [userId, setUserId] = useState(null);
-    const [isAuthReady, setIsAuthReady] = useState(false);
-    const [currentView, setCurrentView] = useState('loading'); // loading, configurator, viewQuote
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [message, setMessage] = useState('');
-    const [openFaq, setOpenFaq] = useState(null);
-    
-    // Quote state
-    const [packages, setPackages] = useState(() => {
-        try {
-            const savedPackages = localStorage.getItem('sparkStudiosConfigurator');
-            return savedPackages ? JSON.parse(savedPackages) : initialPackages;
-        } catch (error) {
-            console.error("Failed to load packages from local storage:", error);
-            return initialPackages;
-        }
-    });
-    const [clientDetails, setClientDetails] = useState({ name: '', email: '' });
-    const [quoteData, setQuoteData] = useState(null);
+// ===== Main App =====
+export default function App() {
+  // Auth state
+  const [userId, setUserId] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
-    // --- Firebase & App Initialization ---
-    useEffect(() => {
-        if (!auth) {
-            setIsAuthReady(true);
-            setCurrentView('configurator');
-            return;
-        }
-        const unsubscribeAuth = onAuthStateChanged(auth, user => {
-            setUserId(user ? user.uid : null);
-            setIsAuthReady(true);
-        });
-        const signIn = async () => {
-            try {
-                if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
-                else await signInAnonymously(auth);
-            } catch (err) { setError(`Authentication failed: ${err.message}`); }
-        };
-        signIn();
-        return () => unsubscribeAuth();
-    }, []);
+  // Views
+  const [currentView, setCurrentView] = useState("loading"); // loading | configurator | viewQuote
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const quoteId = params.get('quoteId');
-        const authorId = params.get('authorId');
-        if (quoteId && authorId) {
-            loadQuote(authorId, quoteId);
-        } else {
-            setCurrentView('configurator');
-        }
-    }, []);
-    
-    // --- Save configuration to local storage ---
-    useEffect(() => {
-        try {
-            localStorage.setItem('sparkStudiosConfigurator', JSON.stringify(packages));
-        } catch (error) {
-            console.error("Failed to save packages to local storage:", error);
-        }
-    }, [packages]);
+  // Quote state
+  const [packages, setPackages] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sparkStudiosConfigurator");
+      return saved ? JSON.parse(saved) : initialPackages;
+    } catch (e) {
+      return initialPackages;
+    }
+  });
+  const [client, setClient] = useState({ name: "", email: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
+  const [quoteData, setQuoteData] = useState(null);
 
-    const showMessage = (msg) => {
-        setMessage(msg);
-        setTimeout(() => setMessage(''), 3000);
-    };
+  // Boot auth
+  useEffect(() => {
+    if (!auth) { setIsAuthReady(true); setCurrentView("configurator"); return; }
+    const unsub = onAuthStateChanged(auth, (u) => { setUserId(u ? u.uid : null); setIsAuthReady(true); });
+    (async () => {
+      try { initialAuthToken ? await signInWithCustomToken(auth, initialAuthToken) : await signInAnonymously(auth); }
+      catch (err) { setError(`Authentication failed: ${err.message}`); }
+    })();
+    return () => unsub();
+  }, []);
 
-    // --- State Handlers ---
-    const handlePackageChange = (pkgIndex, field, value) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex][field] = value;
-        setPackages(newPackages);
-    };
-    
-    const handleDayChange = (pkgIndex, dayIndex, field, value) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].days[dayIndex][field] = value;
-        setPackages(newPackages);
-    };
+  // Deep link loader
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const quoteId = params.get("quoteId");
+    const authorId = params.get("authorId");
+    if (quoteId && authorId) loadQuote(authorId, quoteId); else setCurrentView("configurator");
+  }, []);
 
-    const handleAddDay = (pkgIndex) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].days.push({ id: Date.now() + Math.random(), name: '', hours: '', photographers: '', videographers: '' });
-        setPackages(newPackages);
-    };
+  // Persist local
+  useEffect(() => {
+    try { localStorage.setItem("sparkStudiosConfigurator", JSON.stringify(packages)); } catch {}
+  }, [packages]);
 
-    const handleRemoveDay = (pkgIndex, dayIndex) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].days = newPackages[pkgIndex].days.filter((_, i) => i !== dayIndex);
-        setPackages(newPackages);
-    };
+  const showMsg = (msg) => { setMessage(msg); setTimeout(() => setMessage(""), 3000); };
 
-    const handleInclusionToggle = (pkgIndex, inclusionKey) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].inclusions[inclusionKey] = !newPackages[pkgIndex].inclusions[inclusionKey];
-        setPackages(newPackages);
-    };
+  // ===== Handlers =====
+  const updatePkg = (i, field, value) => setPackages((prev) => prev.map((p, idx) => idx === i ? { ...p, [field]: value } : p));
+  const updateDay = (i, di, field, value) => setPackages((prev) => prev.map((p, idx) => idx === i ? { ...p, days: p.days.map((d, j) => j === di ? { ...d, [field]: value } : d) } : p));
+  const addDay = (i) => setPackages((prev) => prev.map((p, idx) => idx === i ? { ...p, days: [...p.days, newDay()] } : p));
+  const removeDay = (i, di) => setPackages((prev) => prev.map((p, idx) => idx === i ? { ...p, days: p.days.filter((_, j) => j !== di) } : p));
+  const toggleInclusion = (i, key) => setPackages((prev) => prev.map((p, idx) => idx === i ? { ...p, inclusions: { ...p.inclusions, [key]: !p.inclusions[key] } } : p));
 
-    // --- Firestore Logic ---
-    const handleGenerateQuote = async () => {
-        if (!userId) { setError("You must be logged in."); return; }
-        if (!clientDetails.name) { setError("Client Name is required."); return; }
-        
-        setIsLoading(true); setError('');
-        try {
-            // FIX: Save to the user's private collection
-            const userQuotesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/quotes`);
-            const quotePayload = {
-                client: clientDetails,
-                packages: packages,
-                generatedAt: new Date().toISOString(),
-                authorId: userId
-            };
-            const docRef = await addDoc(userQuotesCollectionRef, quotePayload);
-            // FIX: Include authorId in the generated URL
-            const url = `${window.location.origin}${window.location.pathname}?authorId=${userId}&quoteId=${docRef.id}`;
-            
-            window.open(url, '_blank');
-            showMessage("Quote link generated and opened!");
-            
-        } catch (err) {
-            setError(`Failed to generate quote link: ${err.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  // ===== Firestore save + link =====
+  const generateQuoteLink = async () => {
+    if (!client.name) { setError("Client name is required."); return; }
+    if (!db || !userId) { setError("Not authenticated."); return; }
+    setError(""); setIsLoading(true);
+    try {
+      const collRef = collection(db, `artifacts/${appId}/users/${userId}/quotes`);
+      const payload = { client, packages, generatedAt: new Date().toISOString(), authorId: userId };
+      const docRef = await addDoc(collRef, payload);
+      const url = `${window.location.origin}${window.location.pathname}?authorId=${userId}&quoteId=${docRef.id}`;
+      window.open(url, "_blank");
+      showMsg("Quote link generated and opened.");
+    } catch (err) {
+      setError(`Failed to generate link: ${err.message}`);
+    } finally { setIsLoading(false); }
+  };
 
-    const loadQuote = async (authorId, quoteId) => {
-        setCurrentView('loading');
-        try {
-            // FIX: Read from the user's private collection using authorId
-            const docRef = doc(db, `artifacts/${appId}/users/${authorId}/quotes`, quoteId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                setQuoteData(docSnap.data());
-                setCurrentView('viewQuote');
-            } else {
-                setError("Quote not found.");
-                setCurrentView('configurator');
-            }
-        } catch (err) {
-            setError(`Failed to load quote: ${err.message}`);
-        }
-    };
-    
-    // --- Render Logic ---
-    if (firebaseInitializationError) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-red-400 p-4">{firebaseInitializationError}</div>;
-    if (currentView === 'loading' || !isAuthReady) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-400">Loading Configurator...</div>;
+  const loadQuote = async (authorId, quoteId) => {
+    setCurrentView("loading"); setError("");
+    try {
+      const ref = doc(db, `artifacts/${appId}/users/${authorId}/quotes`, quoteId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) { setQuoteData(snap.data()); setCurrentView("viewQuote"); }
+      else { setError("Quote not found."); setCurrentView("configurator"); }
+    } catch (err) { setError(`Failed to load quote: ${err.message}`); setCurrentView("configurator"); }
+  };
 
-    // --- View 1: Configurator ---
-    if (currentView === 'configurator') {
-        return (
-            <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
-                <div className="max-w-screen-2xl mx-auto">
-                    <AppHeader title="Quote Configurator" subtitle="Configure up to three packages for your client." />
-                    
-                    <div className="mb-8 p-6 bg-gray-800/50 rounded-xl border border-gray-700 max-w-4xl mx-auto">
-                        <h2 className="text-xl font-semibold mb-4 text-amber-400">Client Details</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="text" placeholder="Client Name" value={clientDetails.name} onChange={e => setClientDetails(c => ({...c, name: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
-                            <input type="email" placeholder="Client Email" value={clientDetails.email} onChange={e => setClientDetails(c => ({...c, email: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
-                            <button onClick={handleGenerateQuote} disabled={isLoading} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50">
-                                {isLoading ? 'Generating...' : 'Generate Client Quote Link'}
-                            </button>
-                        </div>
-                        {error && <p className="text-red-400 text-center mt-3 text-sm">{error}</p>}
-                        {message && <p className="text-green-400 text-center mt-3 text-sm">{message}</p>}
+  // ===== Views =====
+  if (firebaseInitializationError) return <ErrorScreen msg={firebaseInitializationError} />;
+  if (currentView === "loading" || !isAuthReady) return <LoadingScreen label="Loading Configurator..." />;
+
+  if (currentView === "configurator") {
+    return (
+      <Shell>
+        <Header title="Quote Configurator" subtitle="Configure up to three packages with manual pricing. Generate a client link when ready." />
+
+        <Card>
+          <SectionTitle>Client Details</SectionTitle>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input value={client.name} onChange={(e) => setClient((c) => ({ ...c, name: e.target.value }))} placeholder="Client Name" />
+            <Input value={client.email} onChange={(e) => setClient((c) => ({ ...c, email: e.target.value }))} placeholder="Client Email" type="email" />
+            <Button onClick={generateQuoteLink} disabled={isLoading}>{isLoading ? "Generating…" : "Generate Client Quote Link"}</Button>
+          </div>
+          <Feedback error={error} message={message} />
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {packages.map((pkg, i) => (
+            <Card key={pkg.id} className="space-y-6">
+              <Input value={pkg.name} onChange={(e) => updatePkg(i, "name", e.target.value)} className="text-2xl font-bold text-amber-400" placeholder="Package Name" />
+
+              <div className="space-y-3">
+                <SubTitle>Coverage Days</SubTitle>
+                {pkg.days.map((d, di) => (
+                  <div key={d.id} className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-3 space-y-2">
+                    <Input value={d.name} onChange={(e) => updateDay(i, di, "name", e.target.value)} placeholder="Day Name (e.g., Mehndi)" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input value={d.hours} onChange={(e) => updateDay(i, di, "hours", e.target.value)} placeholder="Hours" />
+                      <Input value={d.photographers} onChange={(e) => updateDay(i, di, "photographers", e.target.value)} placeholder="Photographers" />
+                      <Input value={d.videographers} onChange={(e) => updateDay(i, di, "videographers", e.target.value)} placeholder="Videographers" />
                     </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {packages.map((pkg, pkgIndex) => (
-                            <div key={pkg.id} className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 space-y-6">
-                                <input type="text" placeholder="Package Name" value={pkg.name} onChange={e => handlePackageChange(pkgIndex, 'name', e.target.value)} className="w-full bg-gray-700 text-amber-400 font-bold text-xl p-2 rounded-md"/>
-
-                                <div className="space-y-3">
-                                    <h4 className="font-semibold text-gray-400">Coverage Days</h4>
-                                    {pkg.days.map((day, dayIndex) => (
-                                        <div key={day.id} className="p-3 bg-gray-900/50 rounded-md space-y-2">
-                                            <input value={day.name} onChange={e => handleDayChange(pkgIndex, dayIndex, 'name', e.target.value)} type="text" placeholder="Day Name (e.g., Mehndi)" className="w-full bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <input value={day.hours} onChange={e => handleDayChange(pkgIndex, dayIndex, 'hours', e.target.value)} type="text" placeholder="Hours" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                                <input value={day.photographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'photographers', e.target.value)} type="text" placeholder="Photo" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                                <input value={day.videographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'videographers', e.target.value)} type="text" placeholder="Video" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                            </div>
-                                            <button onClick={() => handleRemoveDay(pkgIndex, dayIndex)} className="text-xs text-red-400 hover:text-red-300 w-full text-right">Remove Day</button>
-                                        </div>
-                                    ))}
-                                    <button onClick={() => handleAddDay(pkgIndex)} className="text-sm text-amber-400 hover:text-amber-300 flex items-center"><PlusIcon/> Add Day</button>
-                                </div>
-
-                                <div className="space-y-2">
-                                     <h4 className="font-semibold text-gray-400">What's Included</h4>
-                                     <div className="max-h-60 overflow-y-auto p-2 bg-gray-900/50 rounded-md">
-                                        {Object.keys(pkg.inclusions).map((inclusionKey) => (
-                                            <label key={inclusionKey} className="flex items-center space-x-3 p-1.5 rounded-md hover:bg-gray-700/50 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={pkg.inclusions[inclusionKey]}
-                                                    onChange={() => handleInclusionToggle(pkgIndex, inclusionKey)}
-                                                    className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-amber-500 focus:ring-amber-500"
-                                                />
-                                                <span className="text-sm text-gray-300">{inclusionKey}</span>
-                                            </label>
-                                        ))}
-                                     </div>
-                                </div>
-                                
-                                <div>
-                                     <h4 className="font-semibold text-gray-400">Total Price</h4>
-                                     <input value={pkg.price} onChange={e => handlePackageChange(pkgIndex, 'price', e.target.value)} type="text" placeholder="$0" className="w-full bg-gray-700 border-amber-500 border text-amber-400 font-bold text-2xl p-2 rounded-md text-right"/>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex justify-end">
+                      <button onClick={() => removeDay(i, di)} className="text-xs text-red-400 hover:text-red-300">Remove Day</button>
                     </div>
+                  </div>
+                ))}
+                <button onClick={() => addDay(i)} className="inline-flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300"><IconPlus /> Add Day</button>
+              </div>
+
+              <div className="space-y-3">
+                <SubTitle>Inclusions</SubTitle>
+                <div className="max-h-56 overflow-y-auto rounded-xl border border-neutral-800 bg-neutral-900/40 p-2">
+                  {ALL_INCLUSIONS.map((key) => (
+                    <label key={key} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-neutral-800/60 cursor-pointer">
+                      <input type="checkbox" className="h-4 w-4" checked={!!pkg.inclusions[key]} onChange={() => toggleInclusion(i, key)} />
+                      <span className="text-sm text-neutral-200">{key}</span>
+                    </label>
+                  ))}
                 </div>
-            </div>
-        );
-    }
-    
-    // --- View 2: Client-Facing Quote Page ---
-    if (currentView === 'viewQuote' && quoteData) {
-        const sortedPackages = [...quoteData.packages].sort((a,b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-        const middleIndex = sortedPackages.length > 1 ? Math.floor(sortedPackages.length / 2) : 0;
-        
-        return (
-            <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
-                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-12">
-                        <div className="w-32 h-12 bg-gray-800/50 border border-amber-400/20 mx-auto mb-4 flex items-center justify-center rounded-lg"><span className="text-amber-400 font-bold">The Spark Studios</span></div>
-                        <h2 className="text-4xl md:text-5xl font-light text-gray-200 mt-2">Your Wedding Proposal</h2>
-                        <p className="mt-4 text-gray-400">Prepared for: {quoteData.client.name}</p>
-                    </div>
-                    <div className={`grid grid-cols-1 lg:grid-cols-${sortedPackages.length} gap-8 items-start`}>
-                        {sortedPackages.map((pkg, index) => (
-                            <div key={pkg.id} className={`bg-gray-800/50 p-8 rounded-2xl border transition-all duration-300 ${index === middleIndex ? 'border-amber-400 scale-105 shadow-2xl shadow-amber-500/10' : 'border-gray-700'}`}>
-                                {index === middleIndex && sortedPackages.length > 1 && <div className="text-center mb-4"><span className="bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full uppercase">Recommended</span></div>}
-                                <h3 className="text-3xl font-bold text-center text-amber-400">{pkg.name}</h3>
-                                <p className="text-5xl font-thin text-center my-6">${Number(pkg.price).toLocaleString()}</p>
-                                
-                                <div className="my-6">
-                                    <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Coverage</h4>
-                                    {pkg.days.map(day => (
-                                        <div key={day.id} className="text-center text-sm text-gray-300 mb-2 last:mb-0">
-                                            <p><strong>{day.name}</strong>: {day.hours} hours</p>
-                                            <p className="text-xs text-gray-500">{day.photographers} Photo &bull; {day.videographers} Video</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                <ul className="space-y-3 text-gray-300">
-                                    {Object.entries(pkg.inclusions).filter(([_, checked]) => checked).map(([key]) => (
-                                      <li key={key} className="flex items-start"><span className="text-amber-400 mr-3 mt-1">&#10003;</span><span>{key}</span></li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                     <div className="mt-16 pt-10 border-t border-gray-700/50">
-                        <h2 className="text-3xl font-bold text-center text-amber-400 mb-8">Frequently Asked Questions</h2>
-                        <div className="max-w-3xl mx-auto space-y-2">
-                           {faqData.map((faq, index) => (
-                                <div key={index} className="bg-gray-800/50 rounded-lg border border-gray-700">
-                                    <button onClick={() => setOpenFaq(openFaq === index ? null : index)} className="w-full flex justify-between items-center text-left text-lg p-4 font-semibold">
-                                        <span>{faq.q}</span>
-                                        <span className={`transform transition-transform ${openFaq === index ? 'rotate-180' : ''}`}>&#9660;</span>
-                                    </button>
-                                    {openFaq === index && <div className="p-4 pt-0 text-gray-400 leading-relaxed"><p>{faq.a}</p></div>}
-                                </div>
-                           ))}
-                        </div>
-                    </div>
-                     <div className="text-center mt-12 text-gray-500 text-sm">
-                        <p>This quote was generated on {new Date(quoteData.generatedAt).toLocaleDateString()}.</p>
-                    </div>
-                 </div>
-            </div>
-        );
-    }
-    
-    return <div>Something went wrong.</div>;
-};
+              </div>
 
-export default App;
+              <div>
+                <SubTitle>Total Price (Manual)</SubTitle>
+                <Input value={pkg.price} onChange={(e) => updatePkg(i, "price", e.target.value)} placeholder="$0" className="text-right text-3xl font-bold border-amber-500 text-amber-400" />
+              </div>
+            </Card>
+          ))}
+        </div>
 
+        <FooterNote />
+      </Shell>
+    );
+  }
+
+  if (currentView === "viewQuote" && quoteData) {
+    const sorted = [...quoteData.packages].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+    const middleIndex = sorted.length > 1 ? Math.floor(sorted.length / 2) : 0;
+
+    return (
+      <Shell>
+        <div className="text-center mb-10">
+          <div className="mx-auto mb-5 flex h-12 w-40 items-center justify-center rounded-lg border border-amber-400/30 bg-neutral-900/60">
+            <span className="font-semibold tracking-wide text-amber-400">The Spark Studios</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-light">Your Wedding Proposal</h2>
+          <p className="mt-2 text-neutral-400">Prepared for: {quoteData.client?.name}</p>
+        </div>
+
+        {/* Packages – vertical list with Classic emphasized */}
+        <div className="space-y-8">
+          {sorted.map((pkg, idx) => (
+            <div key={pkg.id} className={`rounded-2xl border p-8 transition-all ${idx === middleIndex ? "border-amber-400/80 shadow-2xl shadow-amber-500/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.06] via-neutral-900 to-neutral-950 scale-[1.01]" : "border-neutral-800 bg-neutral-900/40"}`}>
+              {idx === middleIndex && (
+                <div className="mb-4 flex justify-center"><Badge>Most Popular</Badge></div>
+              )}
+              <h3 className="text-center text-3xl font-bold text-amber-400">{pkg.name}</h3>
+              {pkg.price && <p className="my-4 text-center text-5xl font-thin">${Number(pkg.price).toLocaleString()}</p>}
+
+              {/* Coverage Summary */}
+              {pkg.days?.length > 0 && (
+                <div className="my-6">
+                  <h4 className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-neutral-400">Coverage</h4>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {pkg.days.map((d) => (
+                      <div key={d.id} className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-3 text-center text-sm">
+                        <div className="font-medium text-neutral-200">{d.name || "Day"}</div>
+                        <div className="text-neutral-400">{d.hours || "—"} hrs</div>
+                        <div className="text-[11px] text-neutral-500">{d.photographers || 0} Photo • {d.videographers || 0} Video</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Inclusions */}
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {Object.entries(pkg.inclusions || {}).filter(([_, v]) => v).map(([k]) => (
+                  <li key={k} className="flex items-start gap-2 text-neutral-200"><span className="mt-1 text-amber-400"><IconCheck /></span><span>{k}</span></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* FAQ */}
+        <div className="mt-16 border-t border-neutral-800 pt-10">
+          <h2 className="mb-6 text-center text-3xl font-semibold text-amber-400">Frequently Asked Questions</h2>
+          <div className="mx-auto max-w-3xl space-y-2">
+            {FAQ.map((f, i) => (
+              <div key={i} className="rounded-lg border border-neutral-800 bg-neutral-900/40">
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="flex w-full items-center justify-between p-4 text-left text-lg font-medium">
+                  <span>{f.q}</span>
+                  <span className={`transition-transform ${openFaq === i ? "rotate-180" : ""}`}>▾</span>
+                </button>
+                {openFaq === i && <div className="px-4 pb-4 pt-0 text-neutral-400">{f.a}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-12 text-center text-sm text-neutral-500">This quote was generated on {quoteData.generatedAt ? new Date(quoteData.generatedAt).toLocaleDateString() : ""}.</div>
+      </Shell>
+    );
+  }
+
+  return <ErrorScreen msg="Something went wrong."/>;
+}
+
+// ===== Layout primitives =====
+function Shell({ children }) {
+  return (
+    <div className="min-h-screen bg-neutral-950 px-4 py-8 text-neutral-100">
+      <div className="mx-auto max-w-7xl space-y-8">{children}</div>
+    </div>
+  );
+}
+function Header({ title, subtitle }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/40 p-8">
+      <div className="pointer-events-none absolute -top-24 right-10 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl" />
+      <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-amber-400">{title}</h1>
+      <p className="mt-2 text-neutral-400">{subtitle}</p>
+    </div>
+  );
+}
+function Card({ className = "", children }) {
+  return <div className={`rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 ${className}`}>{children}</div>;
+}
+function SectionTitle({ children }) {
+  return <h2 className="mb-3 text-lg font-semibold">{children}</h2>;
+}
+function SubTitle({ children }) {
+  return <h3 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400">{children}</h3>;
+}
+function Input(props) {
+  const { className = "", ...rest } = props;
+  return <input {...rest} className={`w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 ${className}`} />;
+}
+function Button({ children, disabled, onClick }) {
+  return (
+    <button onClick={onClick} disabled={disabled} className="rounded-lg bg-amber-500 px-4 py-2 font-semibold text-black shadow hover:bg-amber-400 disabled:opacity-50">
+      {children}
+    </button>
+  );
+}
+function Feedback({ error, message }) {
+  if (!error && !message) return null;
+  return (
+    <div className="mt-4 text-center text-sm">
+      {error && <p className="text-red-400">{error}</p>}
+      {message && <p className="text-emerald-400">{message}</p>}
+    </div>
+  );
+}
+function LoadingScreen({ label = "Loading..." }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-neutral-400">{label}</div>
+  );
+}
+function ErrorScreen({ msg }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 text-center text-red-400">{msg}</div>
+  );
+}
+function FooterNote() {
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 text-xs text-neutral-400">Prices shown are CAD and manually entered. Dates are confirmed only upon retainer & signed agreement.</div>
+  );
+}
