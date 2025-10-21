@@ -431,54 +431,71 @@ const App = () => {
                         <p className="mt-4 text-gray-400">Prepared for: {quoteData.client.name}</p>
                     </div>
                     <div className={`grid grid-cols-1 lg:grid-cols-${sortedPackages.length} gap-8 items-start`}>
-                        {sortedPackages.map((pkg, index) => (
-                            <div key={pkg.id} className={`bg-gray-800/50 p-8 rounded-2xl border transition-all duration-300 ${index === middleIndex ? 'border-amber-400 scale-105 shadow-2xl shadow-amber-500/10' : 'border-gray-700'}`}>
-                                {index === middleIndex && sortedPackages.length > 1 && <div className="text-center mb-4"><span className="bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full uppercase">Recommended</span></div>}
-                                <h3 className="text-3xl font-bold text-center text-amber-400">{pkg.name}</h3>
-                                <p className="text-5xl font-thin text-center my-6">${Number(pkg.price).toLocaleString()}</p>
-                                
-                                <div className="my-6">
-                                    <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Coverage</h4>
-                                    {pkg.days.map(day => (
-                                        <div key={day.id} className="text-center text-sm text-gray-300 mb-2 last:mb-0">
-                                            <p><strong>{day.name}</strong>: {day.hours} hours</p>
-                                            <p className="text-xs text-gray-500">{day.photographers} Photo &bull; {day.videographers} Video</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                <ul className="space-y-3 text-gray-300">
-                                    {Object.entries(pkg.inclusions).filter(([_, checked]) => checked).map(([key]) => (
-                                      <li key={key} className="flex items-start"><span className="text-amber-400 mr-3 mt-1">&#10003;</span><span>{key}</span></li>
-                                    ))}
-                                </ul>
-                                
-                                 {Object.entries(pkg.addOns).filter(([_, checked]) => checked).length > 0 &&
-                                    <div className="mt-6 pt-4 border-t border-gray-700">
-                                         <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Available Add-ons</h4>
-                                         <ul className="space-y-3 text-gray-300">
-                                            {Object.entries(pkg.addOns).filter(([_, checked]) => checked).map(([key]) => (
-                                              <li key={key} className="flex items-start"><span className="text-amber-400/50 mr-3 mt-1">&#43;</span><span>{key}</span></li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                }
+                        {sortedPackages.map((pkg, index) => {
+                            const whatsappMessage = encodeURIComponent(`I'd like to go with the "${pkg.name}" package for my wedding.`);
+                            const whatsappUrl = `https://wa.me/16478633135?text=${whatsappMessage}`;
 
-                                {pkg.customFeatures && pkg.customFeatures.filter(f => f.name).length > 0 &&
-                                    <div className="mt-6 pt-4 border-t border-gray-700">
-                                        <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Custom Additions</h4>
+                            return (
+                                <div key={pkg.id} className={`bg-gray-800/50 p-8 rounded-2xl border flex flex-col h-full transition-all duration-300 ${index === middleIndex ? 'border-amber-400 scale-105 shadow-2xl shadow-amber-500/10' : 'border-gray-700'}`}>
+                                    <div className="flex-grow">
+                                        {index === middleIndex && sortedPackages.length > 1 && <div className="text-center mb-4"><span className="bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full uppercase">Recommended</span></div>}
+                                        <h3 className="text-3xl font-bold text-center text-amber-400">{pkg.name}</h3>
+                                        <p className="text-5xl font-thin text-center my-6">${Number(pkg.price).toLocaleString()}</p>
+                                        
+                                        <div className="my-6">
+                                            <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Coverage</h4>
+                                            {pkg.days.map(day => (
+                                                <div key={day.id} className="text-center text-sm text-gray-300 mb-2 last:mb-0">
+                                                    <p><strong>{day.name}</strong>: {day.hours} hours</p>
+                                                    <p className="text-xs text-gray-500">{day.photographers} Photo &bull; {day.videographers} Video</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
                                         <ul className="space-y-3 text-gray-300">
-                                            {pkg.customFeatures.filter(f => f.name).map((feature) => (
-                                                <li key={feature.id} className="flex items-start justify-between">
-                                                    <div><span className="text-amber-400/50 mr-3 mt-1">&#43;</span><span>{feature.name}</span></div>
-                                                    {feature.price && <span>${feature.price}</span>}
-                                                </li>
+                                            {Object.entries(pkg.inclusions).filter(([_, checked]) => checked).map(([key]) => (
+                                            <li key={key} className="flex items-start"><span className="text-amber-400 mr-3 mt-1">&#10003;</span><span>{key}</span></li>
                                             ))}
                                         </ul>
+                                        
+                                        {Object.entries(pkg.addOns).filter(([_, checked]) => checked).length > 0 &&
+                                            <div className="mt-6 pt-4 border-t border-gray-700">
+                                                <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Available Add-ons</h4>
+                                                <ul className="space-y-3 text-gray-300">
+                                                    {Object.entries(pkg.addOns).filter(([_, checked]) => checked).map(([key]) => (
+                                                    <li key={key} className="flex items-start"><span className="text-amber-400/50 mr-3 mt-1">&#43;</span><span>{key}</span></li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        }
+
+                                        {pkg.customFeatures && pkg.customFeatures.filter(f => f.name).length > 0 &&
+                                            <div className="mt-6 pt-4 border-t border-gray-700">
+                                                <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Custom Additions</h4>
+                                                <ul className="space-y-3 text-gray-300">
+                                                    {pkg.customFeatures.filter(f => f.name).map((feature) => (
+                                                        <li key={feature.id} className="flex items-start justify-between">
+                                                            <div><span className="text-amber-400/50 mr-3 mt-1">&#43;</span><span>{feature.name}</span></div>
+                                                            {feature.price && <span>${feature.price}</span>}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        }
                                     </div>
-                                }
-                            </div>
-                        ))}
+                                    <div className="mt-8">
+                                        <a 
+                                            href={whatsappUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full text-center bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors duration-300"
+                                        >
+                                            Select This Package
+                                        </a>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                      <div className="mt-16 pt-10 border-t border-gray-700/50">
                         <h2 className="text-3xl font-bold text-center text-amber-400 mb-8">Frequently Asked Questions</h2>
