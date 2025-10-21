@@ -13,6 +13,15 @@ let auth;
 let db;
 let firebaseInitializationError = null;
 
+// ** THE FIX IS HERE **
+// Correctly determine appId from Canvas or Vercel environment variables, with a fallback.
+let appId = 'default-app-id';
+if (typeof __app_id !== 'undefined') {
+    appId = __app_id;
+} else if (process.env.REACT_APP_APP_ID_FOR_FIRESTORE) {
+    appId = process.env.REACT_APP_APP_ID_FOR_FIRESTORE;
+}
+
 try {
     let firebaseConfig;
     if (typeof __firebase_config !== 'undefined' && __firebase_config) {
@@ -41,7 +50,6 @@ try {
     firebaseInitializationError = e.message;
 }
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // --- Helper Components & Initial State ---
@@ -189,8 +197,6 @@ const App = () => {
         
         setIsLoading(true); setError('');
         try {
-            // ** THE FIX IS HERE **
-            // Use the correct collection name `weddingQuotes` from your old working code.
             const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/weddingQuotes`);
             const quotePayload = {
                 client: clientDetails,
@@ -215,8 +221,6 @@ const App = () => {
     const loadQuote = async (quoteId) => {
         setCurrentView('loading');
         try {
-            // ** THE FIX IS HERE **
-            // Read from the correct collection name `weddingQuotes`.
             const docRef = doc(db, `artifacts/${appId}/public/data/weddingQuotes`, quoteId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
