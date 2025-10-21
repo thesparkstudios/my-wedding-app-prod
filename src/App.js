@@ -130,8 +130,9 @@ const App = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const quoteId = params.get('quoteId');
-        if (quoteId) {
-            loadQuote(quoteId);
+        const authorId = params.get('authorId');
+        if (quoteId && authorId) {
+            loadQuote(authorId, quoteId);
         } else {
             setCurrentView('configurator');
         }
@@ -189,15 +190,17 @@ const App = () => {
         
         setIsLoading(true); setError('');
         try {
-            const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/quotes`);
+            // FIX: Save to the user's private collection
+            const userQuotesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/quotes`);
             const quotePayload = {
                 client: clientDetails,
                 packages: packages,
                 generatedAt: new Date().toISOString(),
                 authorId: userId
             };
-            const docRef = await addDoc(publicQuotesCollectionRef, quotePayload);
-            const url = `${window.location.origin}${window.location.pathname}?quoteId=${docRef.id}`;
+            const docRef = await addDoc(userQuotesCollectionRef, quotePayload);
+            // FIX: Include authorId in the generated URL
+            const url = `${window.location.origin}${window.location.pathname}?authorId=${userId}&quoteId=${docRef.id}`;
             
             window.open(url, '_blank');
             showMessage("Quote link generated and opened!");
@@ -209,10 +212,11 @@ const App = () => {
         }
     };
 
-    const loadQuote = async (quoteId) => {
+    const loadQuote = async (authorId, quoteId) => {
         setCurrentView('loading');
         try {
-            const docRef = doc(db, `artifacts/${appId}/public/data/quotes`, quoteId);
+            // FIX: Read from the user's private collection using authorId
+            const docRef = doc(db, `artifacts/${appId}/users/${authorId}/quotes`, quoteId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 setQuoteData(docSnap.data());
