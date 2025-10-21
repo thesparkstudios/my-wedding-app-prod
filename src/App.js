@@ -20,13 +20,14 @@ let appId = 'default-app-id';
 // If the app displays an error about Firebase, get the config object 
 // from your Firebase project settings and paste it here.
 const firebaseConfig = {
-  // Example:
-  // apiKey: "AIzaSy...",
-  // authDomain: "your-project-id.firebaseapp.com",
-  // projectId: "your-project-id",
-  // storageBucket: "your-project-id.appspot.com",
-  // messagingSenderId: "...",
-  // appId: "1:..."
+  apiKey: "AIzaSyBV0W6ytsKw5uU32IZn2sOSp8IjwmT0nvs",
+  authDomain: "wedding-quote-app.firebaseapp.com",
+  projectId: "wedding-quote-app",
+  storageBucket: "wedding-quote-app.firebasestorage.app",
+  messagingSenderId: "1019978209954",
+  appId: "1:1019978209954:web:2ce6ebdb1b42c0b7d495fb",
+  measurementId: "G-MK289KSHB8"
+};
 };
 
 try {
