@@ -189,7 +189,8 @@ const App = () => {
         
         setIsLoading(true); setError('');
         try {
-            // FIX: Save to the public collection for shareable links
+            // ** THE FIX IS HERE **
+            // Save to the public collection for shareable links, matching your old working code.
             const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/quotes`);
             const quotePayload = {
                 client: clientDetails,
@@ -198,13 +199,13 @@ const App = () => {
                 authorId: userId
             };
             const docRef = await addDoc(publicQuotesCollectionRef, quotePayload);
-            // FIX: URL only needs the quoteId now
             const url = `${window.location.origin}${window.location.pathname}?quoteId=${docRef.id}`;
             
             window.open(url, '_blank');
             showMessage("Quote link generated and opened!");
             
         } catch (err) {
+            console.error("Error generating quote link:", err); // Added console.error for better debugging
             setError(`Failed to generate quote link: ${err.message}`);
         } finally {
             setIsLoading(false);
@@ -214,7 +215,8 @@ const App = () => {
     const loadQuote = async (quoteId) => {
         setCurrentView('loading');
         try {
-            // FIX: Read from the public collection
+            // ** THE FIX IS HERE **
+            // Read from the public collection, matching your old working code.
             const docRef = doc(db, `artifacts/${appId}/public/data/quotes`, quoteId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
