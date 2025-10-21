@@ -4,8 +4,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, doc, getDoc, addDoc, collection } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
-// These variables are expected from the environment, but we have a fallback.
-var __firebase_config;
+// These variables are for the Canvas environment, but we will use the hardcoded config below.
 var __app_id;
 var __initial_auth_token;
 
@@ -16,39 +15,28 @@ let firebaseInitializationError = null;
 
 let appId = 'default-app-id';
 
-// --- !! PASTE YOUR FIREBASE CONFIGURATION HERE !! ---
-// If the app displays an error about Firebase, get the config object 
-// from your Firebase project settings and paste it here.
+// Hardcoded Firebase configuration provided by the user.
 const firebaseConfig = {
   apiKey: "AIzaSyBV0W6ytsKw5uU32IZn2sOSp8IjwmT0nvs",
   authDomain: "wedding-quote-app.firebaseapp.com",
   projectId: "wedding-quote-app",
-  storageBucket: "wedding-quote-app.firebasestorage.app",
+  storageBucket: "wedding-quote-app.appspot.com",
   messagingSenderId: "1019978209954",
   appId: "1:1019978209954:web:2ce6ebdb1b42c0b7d495fb",
   measurementId: "G-MK289KSHB8"
 };
-};
 
 try {
-    let finalConfig;
-    // Prioritize environment-provided config
-    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-        finalConfig = JSON.parse(__firebase_config);
-        appId = typeof __app_id !== 'undefined' ? __app_id : appId;
-    } 
-    // Otherwise, use the hardcoded fallback config
-    else if (firebaseConfig && firebaseConfig.apiKey) {
-        finalConfig = firebaseConfig;
-    } else {
-        throw new Error("Firebase configuration not provided in environment or code.");
+    // Use the provided app ID from the environment if available
+    if (typeof __app_id !== 'undefined') {
+        appId = __app_id;
     }
 
-    if (!finalConfig.apiKey || !finalConfig.projectId) {
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         throw new Error("Firebase config is missing apiKey or projectId.");
     }
     
-    app = initializeApp(finalConfig);
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
     
@@ -108,7 +96,7 @@ const getNewPackage = (name) => ({
     days: [{ id: Date.now() + Math.random(), name: 'Wedding Day', hours: '', photographers: '', videographers: '' }],
     inclusions: allInclusions.reduce((acc, inclusion) => ({...acc, [inclusion]: false }), {}),
     addOns: allAddOns.reduce((acc, addOn) => ({...acc, [addOn]: false }), {}),
-    customFeatures: [], // New field for custom features
+    customFeatures: [],
     price: ''
 });
 
@@ -134,7 +122,6 @@ const App = () => {
             const savedPackagesJSON = localStorage.getItem('sparkStudiosConfigurator');
             if (savedPackagesJSON) {
                 let savedPackages = JSON.parse(savedPackagesJSON);
-                // Migration logic to add new fields to old saved data
                 return savedPackages.map(pkg => {
                     const migratedPkg = { ...pkg };
                     if (typeof migratedPkg.addOns !== 'object' || migratedPkg.addOns === null) {
@@ -160,9 +147,13 @@ const App = () => {
 
     // --- Firebase & App Initialization ---
     useEffect(() => {
+        if (firebaseInitializationError) {
+            setError(firebaseInitializationError);
+            setIsAuthReady(true);
+            return;
+        }
         if (!auth) {
             setIsAuthReady(true);
-            setCurrentView('configurator');
             return;
         }
         const unsubscribeAuth = onAuthStateChanged(auth, user => {
@@ -189,10 +180,10 @@ const App = () => {
                 setCurrentView('configurator');
                 return;
             }
-            setIsAuthenticated(true); // Clients with a link bypass the password screen
+            setIsAuthenticated(true);
             loadQuote(quoteId);
         } else {
-            setCurrentView('configurator'); // Default to configurator for admins
+            setCurrentView('configurator');
         }
     }, []);
     
@@ -227,7 +218,6 @@ const App = () => {
     const handleInclusionToggle = (pkgIndex, key) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, inclusions: { ...p.inclusions, [key]: !p.inclusions[key] } } : p));
     const handleAddOnToggle = (pkgIndex, key) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, addOns: { ...p.addOns, [key]: !p.addOns[key] } } : p));
 
-    // --- Custom Feature Handlers ---
     const handleAddCustomFeature = (pkgIndex) => {
         setPackages(pkgs => pkgs.map((p, i) => {
             if (i === pkgIndex) {
@@ -263,10 +253,7 @@ const App = () => {
         }));
     };
 
-
-    // --- Firestore Logic ---
     const handleGenerateQuote = async () => {
-        // Check for Firebase configuration first
         if (firebaseInitializationError) {
             setError(`Quote generation failed: ${firebaseInitializationError}`);
             return;
@@ -308,7 +295,6 @@ const App = () => {
         }
     };
     
-    // --- Render Logic ---
     if (currentView === 'loading' || !isAuthReady) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-400">Loading Configurator...</div>;
     
     if (!isAuthenticated) {
@@ -340,7 +326,6 @@ const App = () => {
         )
     }
 
-    // --- View 1: Configurator ---
     if (currentView === 'configurator') {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
@@ -431,7 +416,6 @@ const App = () => {
         );
     }
     
-    // --- View 2: Client-Facing Quote Page ---
     if (currentView === 'viewQuote' && quoteData) {
         const sortedPackages = [...quoteData.packages].sort((a,b) => (Number(a.price) || 0) - (Number(b.price) || 0));
         const middleIndex = sortedPackages.length > 1 ? Math.floor(sortedPackages.length / 2) : 0;
@@ -518,7 +502,7 @@ const App = () => {
         );
     }
     
-    return <div>Something went wrong.</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-red-400 p-4">{error || "Something went wrong."}</div>;
 };
 
 export default App;
