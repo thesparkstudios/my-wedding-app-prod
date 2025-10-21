@@ -4,6 +4,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, doc, getDoc, addDoc, collection } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
+// These variables are expected from the environment, but we have a fallback.
 var __firebase_config;
 var __app_id;
 var __initial_auth_token;
@@ -14,17 +15,13 @@ let db;
 let firebaseInitializationError = null;
 
 let appId = 'default-app-id';
-if (typeof __app_id !== 'undefined') {
-    appId = __app_id;
-} else if (typeof process !== 'undefined' && process.env.REACT_APP_APP_ID_FOR_FIRESTORE) {
-    appId = process.env.REACT_APP_APP_ID_FOR_FIRESTORE;
-}
 
-// --- !! PASTE FIREBASE CONFIG HERE !! ---
-// If the app shows a Firebase error, paste your Firebase config object below.
-// You can get this from your Firebase project settings.
-const fallbackFirebaseConfig = {
-  // apiKey: "AIza...",
+// --- !! PASTE YOUR FIREBASE CONFIGURATION HERE !! ---
+// If the app displays an error about Firebase, get the config object 
+// from your Firebase project settings and paste it here.
+const firebaseConfig = {
+  // Example:
+  // apiKey: "AIzaSy...",
   // authDomain: "your-project-id.firebaseapp.com",
   // projectId: "your-project-id",
   // storageBucket: "your-project-id.appspot.com",
@@ -32,43 +29,31 @@ const fallbackFirebaseConfig = {
   // appId: "1:..."
 };
 
-// Attempt to load Firebase configuration
-let firebaseConfig;
-if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-    try {
-        firebaseConfig = JSON.parse(__firebase_config);
-    } catch (e) {
-        console.error("Failed to parse __firebase_config JSON", e);
-        firebaseInitializationError = "Firebase configuration is invalid.";
+try {
+    let finalConfig;
+    // Prioritize environment-provided config
+    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        finalConfig = JSON.parse(__firebase_config);
+        appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+    } 
+    // Otherwise, use the hardcoded fallback config
+    else if (firebaseConfig && firebaseConfig.apiKey) {
+        finalConfig = firebaseConfig;
+    } else {
+        throw new Error("Firebase configuration not provided in environment or code.");
     }
-} else if (typeof process !== 'undefined' && process.env.REACT_APP_FIREBASE_API_KEY) {
-    firebaseConfig = {
-        apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-        authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.REACT_APP_FIREBASE_APP_ID,
-        measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
-    };
-} else if (fallbackFirebaseConfig.apiKey) {
-    firebaseConfig = fallbackFirebaseConfig;
-}
 
-// Initialize Firebase only if a valid config is found
-if (firebaseConfig && firebaseConfig.apiKey) {
-    try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-    } catch (e) {
-        console.error("FATAL: Firebase initialization failed.", e);
-        firebaseInitializationError = `Firebase initialization failed: ${e.message}`;
+    if (!finalConfig.apiKey || !finalConfig.projectId) {
+        throw new Error("Firebase config is missing apiKey or projectId.");
     }
-} else {
-    if (!firebaseInitializationError) {
-        firebaseInitializationError = "Firebase configuration not provided. Quote generation is disabled.";
-    }
+    
+    app = initializeApp(finalConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    
+} catch (e) {
+    console.error("FATAL: Firebase initialization failed.", e);
+    firebaseInitializationError = e.message;
 }
 
 
@@ -282,7 +267,7 @@ const App = () => {
     const handleGenerateQuote = async () => {
         // Check for Firebase configuration first
         if (firebaseInitializationError) {
-            setError(firebaseInitializationError);
+            setError(`Quote generation failed: ${firebaseInitializationError}`);
             return;
         }
         if (!clientDetails.name) { setError("Client Name is required."); return; }
