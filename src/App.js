@@ -88,17 +88,37 @@ let db;
 let firebaseInitializationError = null;
 
 try {
+    let firebaseConfig;
+    // ** THE FIX IS HERE **
+    // First, check for the Canvas environment's injected config
     if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-        const firebaseConfig = JSON.parse(__firebase_config);
-        if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-            throw new Error("Firebase config is missing apiKey or projectId.");
-        }
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-    } else {
+        firebaseConfig = JSON.parse(__firebase_config);
+    } 
+    // ELSE, check for Vercel's environment variables
+    else if (process.env.REACT_APP_FIREBASE_API_KEY) {
+        firebaseConfig = {
+            apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+            authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.REACT_APP_FIREBASE_APP_ID,
+            measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+        };
+    } 
+    // If neither is found, throw the error.
+    else {
         throw new Error("Firebase configuration was not provided by the environment.");
     }
+
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        throw new Error("Firebase config is missing apiKey or projectId.");
+    }
+    
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+
 } catch (e) {
     console.error("FATAL: Firebase initialization failed.", e);
     firebaseInitializationError = e.message;
