@@ -60,7 +60,6 @@ if (firebaseConfig && firebaseConfig.apiKey) {
 
 
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-// Updated password as per your request
 const ADMIN_PASSWORD = "wayssmmff1";
 
 // --- Helper Components & Initial State ---
@@ -184,7 +183,21 @@ const App = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const quoteId = params.get('quoteId');
-        if (quoteId) {
+        const offlineQuoteData = params.get('quoteData');
+
+        if (offlineQuoteData) {
+            try {
+                const decodedData = atob(offlineQuoteData);
+                const parsedData = JSON.parse(decodedData);
+                setQuoteData(parsedData);
+                setIsAuthenticated(true);
+                setCurrentView('viewQuote');
+            } catch (e) {
+                console.error("Failed to parse offline quote data", e);
+                setError("The provided quote link is invalid.");
+                setCurrentView('configurator');
+            }
+        } else if (quoteId) {
             if (firebaseInitializationError) {
                 setError("Cannot load quote in offline mode.");
                 setCurrentView('configurator');
@@ -267,21 +280,37 @@ const App = () => {
 
     // --- Firestore Logic ---
     const handleGenerateQuote = async () => {
-        if (!userId) { setError("Authentication not ready."); return; }
         if (!clientDetails.name) { setError("Client Name is required."); return; }
-        
         setIsLoading(true); setError('');
+
+        const quotePayload = { client: clientDetails, packages, generatedAt: new Date().toISOString(), authorId: userId || 'offline' };
+
+        // --- Offline Mode Logic ---
+        if (firebaseInitializationError) {
+            try {
+                const jsonString = JSON.stringify(quotePayload);
+                const encodedData = btoa(jsonString);
+                const url = `${window.location.origin}${window.location.pathname}?quoteData=${encodedData}`;
+                window.open(url, '_blank');
+                showMessage("Offline quote link generated and opened!");
+            } catch (err) {
+                console.error("Error generating offline quote link:", err);
+                setError(`Failed to generate offline link: ${err.message}`);
+            } finally {
+                setIsLoading(false);
+            }
+            return;
+        }
+
+        // --- Online (Firebase) Mode Logic ---
+        if (!userId) { setError("Authentication not ready."); setIsLoading(false); return; }
         try {
             const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/weddingQuotes`);
-            const quotePayload = { client: clientDetails, packages, generatedAt: new Date().toISOString(), authorId: userId };
             const docRef = await addDoc(publicQuotesCollectionRef, quotePayload);
             const url = `${window.location.origin}${window.location.pathname}?quoteId=${docRef.id}`;
-            
             window.open(url, '_blank');
             showMessage("Quote link generated and opened!");
-            
-        } catch (err)
-        {
+        } catch (err) {
             console.error("Error generating quote link:", err); 
             setError(`Failed to generate quote link: ${err.message}`);
         } finally {
@@ -357,7 +386,7 @@ const App = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" placeholder="Client Name" value={clientDetails.name} onChange={e => setClientDetails(c => ({...c, name: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
                             <input type="email" placeholder="Client Email" value={clientDetails.email} onChange={e => setClientDetails(c => ({...c, email: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
-                            <button onClick={handleGenerateQuote} disabled={isLoading || !!firebaseInitializationError} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button onClick={handleGenerateQuote} disabled={isLoading} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isLoading ? 'Generating...' : 'Generate Client Quote Link'}
                             </button>
                         </div>
