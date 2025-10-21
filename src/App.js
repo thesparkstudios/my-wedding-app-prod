@@ -79,7 +79,8 @@ const allAddOns = [
     'Content creation',
     'Wedding Album 12x34 (Premium)',
     'Wedding Album 12x34 (Regular)',
-    'Projector Live Feed'
+    'Projector Live Feed',
+    'Complimentary E-Shoot'
 ];
 
 
