@@ -63,19 +63,25 @@ const allInclusions = [
     'Online delivery for approval',
     'Final delivery via online link',
     'Drone Coverage',
-    'Content Creation',
     'Content Creation & Next-Day Sneak Peek Reel',
-    'Additional Hours',
-    'Live Streaming',
-    'Projector Live Feed',
-    'Wedding Album 12x34 (Regular)',
-    'Wedding Album 12x34 (Premium)',
-    'Premium Keepsake Box (Engraved USB + 10 prints)',
-    'Fast Turnaround (6-8 Weeks)',
+    'Premium Keepsake Box — includes a premium engraved USB and 10 fine-art prints',
     'Faster Turnaround (3 Months)',
     'Fastest Turnaround (2 Months)',
     'Additional Crew (+1 Photographer & +1 Videographer)'
 ];
+
+const allAddOns = [
+    'Additional Photographer',
+    'Additional Videographer',
+    'Fast turn around - within 6-8 Weeks delivery',
+    'Additional hours',
+    'Live Streaming',
+    'Content creation',
+    'Wedding Album 12x34 (Premium)',
+    'Wedding Album 12x34 (Regular)',
+    'Projector Live Feed'
+];
+
 
 const faqData = [
     { q: "What happens before the event?", a: "Before your event takes place, we'll discuss the flow of the day and all the major details that will help our videographers and photographers capture everything perfectly. Any references for photoshoots, highlights, or mood boards should also be discussed during this stage." },
@@ -90,6 +96,7 @@ const getNewPackage = (name) => ({
     name: name,
     days: [{ id: Date.now() + Math.random(), name: 'Wedding Day', hours: '', photographers: '', videographers: '' }],
     inclusions: allInclusions.reduce((acc, inclusion) => ({...acc, [inclusion]: false }), {}),
+    addOns: allAddOns.reduce((acc, addOn) => ({...acc, [addOn]: false }), {}),
     price: ''
 });
 
@@ -194,6 +201,12 @@ const App = () => {
         newPackages[pkgIndex].inclusions[inclusionKey] = !newPackages[pkgIndex].inclusions[inclusionKey];
         setPackages(newPackages);
     };
+    
+    const handleAddOnToggle = (pkgIndex, addOnKey) => {
+        const newPackages = [...packages];
+        newPackages[pkgIndex].addOns[addOnKey] = !newPackages[pkgIndex].addOns[addOnKey];
+        setPackages(newPackages);
+    };
 
     // --- Firestore Logic ---
     const handleGenerateQuote = async () => {
@@ -287,16 +300,23 @@ const App = () => {
 
                                 <div className="space-y-2">
                                      <h4 className="font-semibold text-gray-400">What's Included</h4>
-                                     <div className="max-h-60 overflow-y-auto p-2 bg-gray-900/50 rounded-md">
+                                     <div className="max-h-48 overflow-y-auto p-2 bg-gray-900/50 rounded-md">
                                         {Object.keys(pkg.inclusions).map((inclusionKey) => (
                                             <label key={inclusionKey} className="flex items-center space-x-3 p-1.5 rounded-md hover:bg-gray-700/50 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={pkg.inclusions[inclusionKey]}
-                                                    onChange={() => handleInclusionToggle(pkgIndex, inclusionKey)}
-                                                    className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-amber-500 focus:ring-amber-500"
-                                                />
+                                                <input type="checkbox" checked={pkg.inclusions[inclusionKey]} onChange={() => handleInclusionToggle(pkgIndex, inclusionKey)} className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-amber-500 focus:ring-amber-500"/>
                                                 <span className="text-sm text-gray-300">{inclusionKey}</span>
+                                            </label>
+                                        ))}
+                                     </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                     <h4 className="font-semibold text-gray-400">Add-on(s)</h4>
+                                     <div className="max-h-48 overflow-y-auto p-2 bg-gray-900/50 rounded-md">
+                                        {Object.keys(pkg.addOns).map((addOnKey) => (
+                                            <label key={addOnKey} className="flex items-center space-x-3 p-1.5 rounded-md hover:bg-gray-700/50 cursor-pointer">
+                                                <input type="checkbox" checked={pkg.addOns[addOnKey]} onChange={() => handleAddOnToggle(pkgIndex, addOnKey)} className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-amber-500 focus:ring-amber-500"/>
+                                                <span className="text-sm text-gray-300">{addOnKey}</span>
                                             </label>
                                         ))}
                                      </div>
@@ -323,7 +343,9 @@ const App = () => {
             <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
                  <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12">
-                        <div className="w-32 h-12 bg-gray-800/50 border border-amber-400/20 mx-auto mb-4 flex items-center justify-center rounded-lg"><span className="text-amber-400 font-bold">The Spark Studios</span></div>
+                        <div className="mx-auto mb-4 flex items-center justify-center">
+                            <img src="https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png" alt="The Spark Studios Logo" className="h-16 w-auto" />
+                        </div>
                         <h2 className="text-4xl md:text-5xl font-light text-gray-200 mt-2">Your Wedding Proposal</h2>
                         <p className="mt-4 text-gray-400">Prepared for: {quoteData.client.name}</p>
                     </div>
@@ -349,6 +371,17 @@ const App = () => {
                                       <li key={key} className="flex items-start"><span className="text-amber-400 mr-3 mt-1">&#10003;</span><span>{key}</span></li>
                                     ))}
                                 </ul>
+                                
+                                 {Object.entries(pkg.addOns).filter(([_, checked]) => checked).length > 0 &&
+                                    <div className="mt-6 pt-4 border-t border-gray-700">
+                                         <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Available Add-ons</h4>
+                                         <ul className="space-y-3 text-gray-300">
+                                            {Object.entries(pkg.addOns).filter(([_, checked]) => checked).map(([key]) => (
+                                              <li key={key} className="flex items-start"><span className="text-amber-400/50 mr-3 mt-1">&#43;</span><span>{key}</span></li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                }
                             </div>
                         ))}
                     </div>
