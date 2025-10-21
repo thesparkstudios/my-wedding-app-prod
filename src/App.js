@@ -13,7 +13,6 @@ let auth;
 let db;
 let firebaseInitializationError = null;
 
-// Correctly determine appId from Canvas or Vercel environment variables, with a fallback.
 let appId = 'default-app-id';
 if (typeof __app_id !== 'undefined') {
     appId = __app_id;
@@ -50,6 +49,7 @@ try {
 }
 
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+const ADMIN_PASSWORD = "wayssmmffs1";
 
 // --- Helper Components & Initial State ---
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
@@ -108,11 +108,14 @@ const App = () => {
     // App state
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
-    const [currentView, setCurrentView] = useState('loading'); // loading, configurator, viewQuote
+    const [currentView, setCurrentView] = useState('loading');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [openFaq, setOpenFaq] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
     
     // Quote state
     const [packages, setPackages] = useState(() => {
@@ -120,8 +123,6 @@ const App = () => {
             const savedPackagesJSON = localStorage.getItem('sparkStudiosConfigurator');
             if (savedPackagesJSON) {
                 let savedPackages = JSON.parse(savedPackagesJSON);
-                // ** THE FIX IS HERE **
-                // This logic ensures old saved data is compatible with the new code.
                 return savedPackages.map(pkg => {
                     const migratedPkg = { ...pkg };
                     if (typeof migratedPkg.addOns !== 'object' || migratedPkg.addOns === null) {
@@ -133,10 +134,10 @@ const App = () => {
                     return migratedPkg;
                 });
             }
-            return initialPackages; // Return fresh packages if nothing is saved
+            return initialPackages;
         } catch (error) {
             console.error("Failed to load or migrate packages from local storage:", error);
-            return initialPackages; // Return fresh packages on any error
+            return initialPackages;
         }
     });
     const [clientDetails, setClientDetails] = useState({ name: '', email: '' });
@@ -167,13 +168,13 @@ const App = () => {
         const params = new URLSearchParams(window.location.search);
         const quoteId = params.get('quoteId');
         if (quoteId) {
+            setIsAuthenticated(true); // Clients with a link bypass the password screen
             loadQuote(quoteId);
         } else {
             setCurrentView('configurator');
         }
     }, []);
     
-    // --- Save configuration to local storage ---
     useEffect(() => {
         try {
             localStorage.setItem('sparkStudiosConfigurator', JSON.stringify(packages));
@@ -187,57 +188,33 @@ const App = () => {
         setTimeout(() => setMessage(''), 3000);
     };
 
-    // --- State Handlers ---
-    const handlePackageChange = (pkgIndex, field, value) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex][field] = value;
-        setPackages(newPackages);
-    };
-    
-    const handleDayChange = (pkgIndex, dayIndex, field, value) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].days[dayIndex][field] = value;
-        setPackages(newPackages);
+    // --- State & Auth Handlers ---
+    const handlePasswordSubmit = (e) => {
+        e.preventDefault();
+        if (passwordInput === ADMIN_PASSWORD) {
+            setIsAuthenticated(true);
+            setPasswordError('');
+        } else {
+            setPasswordError('Incorrect password.');
+        }
     };
 
-    const handleAddDay = (pkgIndex) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].days.push({ id: Date.now() + Math.random(), name: '', hours: '', photographers: '', videographers: '' });
-        setPackages(newPackages);
-    };
-
-    const handleRemoveDay = (pkgIndex, dayIndex) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].days = newPackages[pkgIndex].days.filter((_, i) => i !== dayIndex);
-        setPackages(newPackages);
-    };
-
-    const handleInclusionToggle = (pkgIndex, inclusionKey) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].inclusions[inclusionKey] = !newPackages[pkgIndex].inclusions[inclusionKey];
-        setPackages(newPackages);
-    };
-    
-    const handleAddOnToggle = (pkgIndex, addOnKey) => {
-        const newPackages = [...packages];
-        newPackages[pkgIndex].addOns[addOnKey] = !newPackages[pkgIndex].addOns[addOnKey];
-        setPackages(newPackages);
-    };
+    const handlePackageChange = (pkgIndex, field, value) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, [field]: value } : p));
+    const handleDayChange = (pkgIndex, dayIndex, field, value) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, days: p.days.map((d, di) => di === dayIndex ? { ...d, [field]: value } : d) } : p));
+    const handleAddDay = (pkgIndex) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, days: [...p.days, { id: Date.now() + Math.random(), name: '', hours: '', photographers: '', videographers: '' }] } : p));
+    const handleRemoveDay = (pkgIndex, dayIndex) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, days: p.days.filter((_, di) => di !== dayIndex) } : p));
+    const handleInclusionToggle = (pkgIndex, key) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, inclusions: { ...p.inclusions, [key]: !p.inclusions[key] } } : p));
+    const handleAddOnToggle = (pkgIndex, key) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, addOns: { ...p.addOns, [key]: !p.addOns[key] } } : p));
 
     // --- Firestore Logic ---
     const handleGenerateQuote = async () => {
-        if (!userId) { setError("You must be logged in."); return; }
+        if (!userId) { setError("Authentication not ready."); return; }
         if (!clientDetails.name) { setError("Client Name is required."); return; }
         
         setIsLoading(true); setError('');
         try {
             const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/weddingQuotes`);
-            const quotePayload = {
-                client: clientDetails,
-                packages: packages,
-                generatedAt: new Date().toISOString(),
-                authorId: userId
-            };
+            const quotePayload = { client: clientDetails, packages, generatedAt: new Date().toISOString(), authorId: userId };
             const docRef = await addDoc(publicQuotesCollectionRef, quotePayload);
             const url = `${window.location.origin}${window.location.pathname}?quoteId=${docRef.id}`;
             
@@ -272,6 +249,35 @@ const App = () => {
     // --- Render Logic ---
     if (firebaseInitializationError) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-red-400 p-4">{firebaseInitializationError}</div>;
     if (currentView === 'loading' || !isAuthReady) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-400">Loading Configurator...</div>;
+    
+    if (!isAuthenticated) {
+        return (
+             <div className="min-h-screen bg-gray-900 text-gray-200 font-sans flex items-center justify-center p-4">
+                <div className="w-full max-w-sm">
+                    <div className="text-center mb-6">
+                        <img src="https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png" alt="The Spark Studios Logo" className="h-12 w-auto mx-auto" />
+                        <h1 className="text-2xl font-bold text-amber-400 mt-4">Configurator Access</h1>
+                    </div>
+                    <form onSubmit={handlePasswordSubmit} className="bg-gray-800/50 p-8 rounded-xl border border-gray-700 space-y-6">
+                         <div>
+                            <label htmlFor="password-input" className="block text-sm font-medium text-gray-400 mb-2">Enter Password</label>
+                            <input
+                                id="password-input"
+                                type="password"
+                                value={passwordInput}
+                                onChange={(e) => setPasswordInput(e.target.value)}
+                                className="w-full bg-gray-700 border-gray-600 rounded-md p-2 text-lg focus:ring-amber-500 focus:border-amber-500"
+                            />
+                        </div>
+                        {passwordError && <p className="text-red-400 text-sm">{passwordError}</p>}
+                        <button type="submit" className="w-full bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400">
+                            Unlock
+                        </button>
+                    </form>
+                </div>
+            </div>
+        )
+    }
 
     // --- View 1: Configurator ---
     if (currentView === 'configurator') {
