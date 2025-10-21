@@ -190,8 +190,8 @@ const App = () => {
         setIsLoading(true); setError('');
         try {
             // ** THE FIX IS HERE **
-            // Save to the public collection for shareable links, matching your old working code.
-            const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/quotes`);
+            // Use the correct collection name `weddingQuotes` from your old working code.
+            const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/weddingQuotes`);
             const quotePayload = {
                 client: clientDetails,
                 packages: packages,
@@ -205,7 +205,7 @@ const App = () => {
             showMessage("Quote link generated and opened!");
             
         } catch (err) {
-            console.error("Error generating quote link:", err); // Added console.error for better debugging
+            console.error("Error generating quote link:", err); 
             setError(`Failed to generate quote link: ${err.message}`);
         } finally {
             setIsLoading(false);
@@ -216,8 +216,8 @@ const App = () => {
         setCurrentView('loading');
         try {
             // ** THE FIX IS HERE **
-            // Read from the public collection, matching your old working code.
-            const docRef = doc(db, `artifacts/${appId}/public/data/quotes`, quoteId);
+            // Read from the correct collection name `weddingQuotes`.
+            const docRef = doc(db, `artifacts/${appId}/public/data/weddingQuotes`, quoteId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 setQuoteData(docSnap.data());
