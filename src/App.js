@@ -13,7 +13,6 @@ let auth;
 let db;
 let firebaseInitializationError = null;
 
-// ** THE FIX IS HERE **
 // Correctly determine appId from Canvas or Vercel environment variables, with a fallback.
 let appId = 'default-app-id';
 if (typeof __app_id !== 'undefined') {
@@ -57,19 +56,25 @@ const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height
 const AppHeader = ({ title, subtitle }) => (<div className="text-center mb-10"><h1 className="text-4xl md:text-5xl font-bold text-amber-400">{title}</h1><p className="text-lg text-gray-400 mt-2">{subtitle}</p></div>);
 
 const allInclusions = [
-    'Unlimited professionally edited photos',
-    'Cinematic Highlight Film (3–5 min)',
-    'Full Feature Film (Full Day Edit)',
-    'Online Gallery + Delivery (3–6 months)',
-    'Drone',
-    'E-Shoot',
-    'Content Creation (for Reels/TikToks)',
-    'Albums',
-    'Drone Coverage included',
-    'Engagement E-Shoot (1 hour)',
-    'Online Gallery + Delivery (within 3 months)',
-    'Luxury Keepsake Box (USB + 20 Fine Art Prints)',
-    'Priority Editing Delivery (within 2 months)'
+    'Unlimited edited photos',
+    'Photo & video shoots within the agreed time frame',
+    'Cinematic highlights film',
+    'Full-length edited video',
+    'Online delivery for approval',
+    'Final delivery via online link',
+    'Drone Coverage',
+    'Content Creation',
+    'Content Creation & Next-Day Sneak Peek Reel',
+    'Additional Hours',
+    'Live Streaming',
+    'Projector Live Feed',
+    'Wedding Album 12x34 (Regular)',
+    'Wedding Album 12x34 (Premium)',
+    'Premium Keepsake Box (Engraved USB + 10 prints)',
+    'Fast Turnaround (6-8 Weeks)',
+    'Faster Turnaround (3 Months)',
+    'Fastest Turnaround (2 Months)',
+    'Additional Crew (+1 Photographer & +1 Videographer)'
 ];
 
 const faqData = [
@@ -271,8 +276,8 @@ const App = () => {
                                             <input value={day.name} onChange={e => handleDayChange(pkgIndex, dayIndex, 'name', e.target.value)} type="text" placeholder="Day Name (e.g., Mehndi)" className="w-full bg-gray-700 text-sm p-1.5 rounded-md"/>
                                             <div className="grid grid-cols-3 gap-2">
                                                 <input value={day.hours} onChange={e => handleDayChange(pkgIndex, dayIndex, 'hours', e.target.value)} type="text" placeholder="Hours" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                                <input value={day.photographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'photographers', e.target.value)} type="text" placeholder="Photo" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                                <input value={day.videographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'videographers', e.target.value)} type="text" placeholder="Video" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
+                                                <input value={day.photographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'photographers', e.target.value)} type="text" placeholder="# Photo" className="bg-gray-700 text-base p-1.5 rounded-md"/>
+                                                <input value={day.videographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'videographers', e.target.value)} type="text" placeholder="# Video" className="bg-gray-700 text-base p-1.5 rounded-md"/>
                                             </div>
                                             <button onClick={() => handleRemoveDay(pkgIndex, dayIndex)} className="text-xs text-red-400 hover:text-red-300 w-full text-right">Remove Day</button>
                                         </div>
