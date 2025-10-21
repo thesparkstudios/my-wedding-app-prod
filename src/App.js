@@ -20,33 +20,44 @@ if (typeof __app_id !== 'undefined') {
     appId = process.env.REACT_APP_APP_ID_FOR_FIRESTORE;
 }
 
-try {
-    let firebaseConfig;
-    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+// Attempt to load Firebase configuration
+let firebaseConfig;
+if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+    try {
         firebaseConfig = JSON.parse(__firebase_config);
-    } else if (typeof process !== 'undefined' && process.env.REACT_APP_FIREBASE_API_KEY) {
-        firebaseConfig = {
-            apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-            authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.REACT_APP_FIREBASE_APP_ID,
-            measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
-        };
-    } else {
-        throw new Error("Firebase configuration was not provided by the environment.");
+    } catch (e) {
+        console.error("Failed to parse __firebase_config JSON", e);
+        firebaseInitializationError = "Firebase configuration is invalid.";
     }
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        throw new Error("Firebase config is missing apiKey or projectId.");
-    }
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-} catch (e) {
-    console.error("FATAL: Firebase initialization failed.", e);
-    firebaseInitializationError = e.message;
+} else if (typeof process !== 'undefined' && process.env.REACT_APP_FIREBASE_API_KEY) {
+    firebaseConfig = {
+        apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+        authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.REACT_APP_FIREBASE_APP_ID,
+        measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+    };
 }
+
+// Initialize Firebase only if a valid config is found
+if (firebaseConfig && firebaseConfig.apiKey) {
+    try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+    } catch (e) {
+        console.error("FATAL: Firebase initialization failed.", e);
+        firebaseInitializationError = `Firebase initialization failed: ${e.message}`;
+    }
+} else {
+    if (!firebaseInitializationError) {
+        firebaseInitializationError = "Firebase configuration was not provided by the environment. Using app in offline mode.";
+        console.warn(firebaseInitializationError);
+    }
+}
+
 
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 // Updated password as per your request
@@ -335,7 +346,7 @@ const App = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" placeholder="Client Name" value={clientDetails.name} onChange={e => setClientDetails(c => ({...c, name: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
                             <input type="email" placeholder="Client Email" value={clientDetails.email} onChange={e => setClientDetails(c => ({...c, email: e.target.value}))} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
-                            <button onClick={handleGenerateQuote} disabled={isLoading} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50">
+                            <button onClick={handleGenerateQuote} disabled={isLoading || !!firebaseInitializationError} className="bg-amber-500 text-black font-bold py-2 rounded-md hover:bg-amber-400 disabled:opacity-50">
                                 {isLoading ? 'Generating...' : 'Generate Client Quote Link'}
                             </button>
                         </div>
@@ -505,3 +516,4 @@ const App = () => {
 };
 
 export default App;
+
