@@ -373,13 +373,6 @@ const App = () => {
             <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
                 <div className="max-w-screen-2xl mx-auto">
                     <AppHeader title="Quote Configurator" subtitle="Configure up to three packages for your client." />
-
-                    {firebaseInitializationError && (
-                        <div className="mb-8 p-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 rounded-xl max-w-4xl mx-auto text-center">
-                            <p className="font-semibold">Offline Mode</p>
-                            <p className="text-sm text-yellow-400">{firebaseInitializationError}</p>
-                        </div>
-                    )}
                     
                     <div className="mb-8 p-6 bg-gray-800/50 rounded-xl border border-gray-700 max-w-4xl mx-auto">
                         <h2 className="text-xl font-semibold mb-4 text-amber-400">Client Details</h2>
