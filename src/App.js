@@ -116,11 +116,26 @@ const App = () => {
     // Quote state
     const [packages, setPackages] = useState(() => {
         try {
-            const savedPackages = localStorage.getItem('sparkStudiosConfigurator');
-            return savedPackages ? JSON.parse(savedPackages) : initialPackages;
+            const savedPackagesJSON = localStorage.getItem('sparkStudiosConfigurator');
+            if (savedPackagesJSON) {
+                let savedPackages = JSON.parse(savedPackagesJSON);
+                // ** THE FIX IS HERE **
+                // This logic ensures old saved data is compatible with the new code.
+                return savedPackages.map(pkg => {
+                    const migratedPkg = { ...pkg };
+                    if (typeof migratedPkg.addOns !== 'object' || migratedPkg.addOns === null) {
+                        migratedPkg.addOns = allAddOns.reduce((acc, addOn) => ({ ...acc, [addOn]: false }), {});
+                    }
+                    if (typeof migratedPkg.inclusions !== 'object' || migratedPkg.inclusions === null) {
+                         migratedPkg.inclusions = allInclusions.reduce((acc, inclusion) => ({...acc, [inclusion]: false }), {});
+                    }
+                    return migratedPkg;
+                });
+            }
+            return initialPackages; // Return fresh packages if nothing is saved
         } catch (error) {
-            console.error("Failed to load packages from local storage:", error);
-            return initialPackages;
+            console.error("Failed to load or migrate packages from local storage:", error);
+            return initialPackages; // Return fresh packages on any error
         }
     });
     const [clientDetails, setClientDetails] = useState({ name: '', email: '' });
