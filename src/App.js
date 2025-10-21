@@ -20,6 +20,18 @@ if (typeof __app_id !== 'undefined') {
     appId = process.env.REACT_APP_APP_ID_FOR_FIRESTORE;
 }
 
+// --- !! PASTE FIREBASE CONFIG HERE !! ---
+// If the app shows a Firebase error, paste your Firebase config object below.
+// You can get this from your Firebase project settings.
+const fallbackFirebaseConfig = {
+  // apiKey: "AIza...",
+  // authDomain: "your-project-id.firebaseapp.com",
+  // projectId: "your-project-id",
+  // storageBucket: "your-project-id.appspot.com",
+  // messagingSenderId: "...",
+  // appId: "1:..."
+};
+
 // Attempt to load Firebase configuration
 let firebaseConfig;
 if (typeof __firebase_config !== 'undefined' && __firebase_config) {
@@ -39,6 +51,8 @@ if (typeof __firebase_config !== 'undefined' && __firebase_config) {
         appId: process.env.REACT_APP_FIREBASE_APP_ID,
         measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
     };
+} else if (fallbackFirebaseConfig.apiKey) {
+    firebaseConfig = fallbackFirebaseConfig;
 }
 
 // Initialize Firebase only if a valid config is found
