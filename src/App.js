@@ -187,7 +187,7 @@ const App = () => {
 
         if (offlineQuoteData) {
             try {
-                const decodedData = atob(offlineQuoteData);
+                const decodedData = decodeURIComponent(atob(offlineQuoteData));
                 const parsedData = JSON.parse(decodedData);
                 setQuoteData(parsedData);
                 setIsAuthenticated(true);
@@ -289,7 +289,7 @@ const App = () => {
         if (firebaseInitializationError) {
             try {
                 const jsonString = JSON.stringify(quotePayload);
-                const encodedData = btoa(jsonString);
+                const encodedData = btoa(encodeURIComponent(jsonString));
                 const url = `${window.location.origin}${window.location.pathname}?quoteData=${encodedData}`;
                 window.open(url, '_blank');
                 showMessage("Offline quote link generated and opened!");
