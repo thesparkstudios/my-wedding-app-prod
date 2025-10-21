@@ -16,7 +16,7 @@ let firebaseInitializationError = null;
 let appId = 'default-app-id';
 if (typeof __app_id !== 'undefined') {
     appId = __app_id;
-} else if (typeof process !== 'undefined' && process.env.REACT_APP_APP_ID_FOR_FIRESTORE) {
+} else if (process.env.REACT_APP_APP_ID_FOR_FIRESTORE) {
     appId = process.env.REACT_APP_APP_ID_FOR_FIRESTORE;
 }
 
@@ -24,7 +24,7 @@ try {
     let firebaseConfig;
     if (typeof __firebase_config !== 'undefined' && __firebase_config) {
         firebaseConfig = JSON.parse(__firebase_config);
-    } else if (typeof process !== 'undefined' && process.env.REACT_APP_FIREBASE_API_KEY) {
+    } else if (process.env.REACT_APP_FIREBASE_API_KEY) {
         firebaseConfig = {
             apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
             authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -49,8 +49,7 @@ try {
 }
 
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-// Updated password as per your request
-const ADMIN_PASSWORD = "wayssmmff1";
+const ADMIN_PASSWORD = "wayssmmffs1";
 
 // --- Helper Components & Initial State ---
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
@@ -99,7 +98,6 @@ const getNewPackage = (name) => ({
     days: [{ id: Date.now() + Math.random(), name: 'Wedding Day', hours: '', photographers: '', videographers: '' }],
     inclusions: allInclusions.reduce((acc, inclusion) => ({...acc, [inclusion]: false }), {}),
     addOns: allAddOns.reduce((acc, addOn) => ({...acc, [addOn]: false }), {}),
-    customFeatures: [], // New field for custom features
     price: ''
 });
 
@@ -125,7 +123,6 @@ const App = () => {
             const savedPackagesJSON = localStorage.getItem('sparkStudiosConfigurator');
             if (savedPackagesJSON) {
                 let savedPackages = JSON.parse(savedPackagesJSON);
-                // Migration logic to add new fields to old saved data
                 return savedPackages.map(pkg => {
                     const migratedPkg = { ...pkg };
                     if (typeof migratedPkg.addOns !== 'object' || migratedPkg.addOns === null) {
@@ -133,9 +130,6 @@ const App = () => {
                     }
                     if (typeof migratedPkg.inclusions !== 'object' || migratedPkg.inclusions === null) {
                          migratedPkg.inclusions = allInclusions.reduce((acc, inclusion) => ({...acc, [inclusion]: false }), {});
-                    }
-                    if (!Array.isArray(migratedPkg.customFeatures)) {
-                        migratedPkg.customFeatures = [];
                     }
                     return migratedPkg;
                 });
@@ -177,7 +171,7 @@ const App = () => {
             setIsAuthenticated(true); // Clients with a link bypass the password screen
             loadQuote(quoteId);
         } else {
-            setCurrentView('configurator'); // Default to configurator for admins
+            setCurrentView('configurator');
         }
     }, []);
     
@@ -212,43 +206,6 @@ const App = () => {
     const handleInclusionToggle = (pkgIndex, key) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, inclusions: { ...p.inclusions, [key]: !p.inclusions[key] } } : p));
     const handleAddOnToggle = (pkgIndex, key) => setPackages(pkgs => pkgs.map((p, i) => i === pkgIndex ? { ...p, addOns: { ...p.addOns, [key]: !p.addOns[key] } } : p));
 
-    // --- Custom Feature Handlers ---
-    const handleAddCustomFeature = (pkgIndex) => {
-        setPackages(pkgs => pkgs.map((p, i) => {
-            if (i === pkgIndex) {
-                const newCustomFeatures = [...p.customFeatures, { id: Date.now(), name: '', price: '' }];
-                return { ...p, customFeatures: newCustomFeatures };
-            }
-            return p;
-        }));
-    };
-
-    const handleRemoveCustomFeature = (pkgIndex, featureId) => {
-        setPackages(pkgs => pkgs.map((p, i) => {
-            if (i === pkgIndex) {
-                const newCustomFeatures = p.customFeatures.filter(f => f.id !== featureId);
-                return { ...p, customFeatures: newCustomFeatures };
-            }
-            return p;
-        }));
-    };
-    
-    const handleCustomFeatureChange = (pkgIndex, featureId, field, value) => {
-        setPackages(pkgs => pkgs.map((p, i) => {
-            if (i === pkgIndex) {
-                const newCustomFeatures = p.customFeatures.map(f => {
-                    if (f.id === featureId) {
-                        return { ...f, [field]: value };
-                    }
-                    return f;
-                });
-                return { ...p, customFeatures: newCustomFeatures };
-            }
-            return p;
-        }));
-    };
-
-
     // --- Firestore Logic ---
     const handleGenerateQuote = async () => {
         if (!userId) { setError("Authentication not ready."); return; }
@@ -264,8 +221,7 @@ const App = () => {
             window.open(url, '_blank');
             showMessage("Quote link generated and opened!");
             
-        } catch (err)
-        {
+        } catch (err) {
             console.error("Error generating quote link:", err); 
             setError(`Failed to generate quote link: ${err.message}`);
         } finally {
@@ -358,7 +314,7 @@ const App = () => {
                                                 <input value={day.photographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'photographers', e.target.value)} type="text" placeholder="# Photo" className="bg-gray-700 text-base p-1.5 rounded-md"/>
                                                 <input value={day.videographers} onChange={e => handleDayChange(pkgIndex, dayIndex, 'videographers', e.target.value)} type="text" placeholder="# Video" className="bg-gray-700 text-base p-1.5 rounded-md"/>
                                             </div>
-                                            {pkg.days.length > 1 && <button onClick={() => handleRemoveDay(pkgIndex, dayIndex)} className="text-xs text-red-400 hover:text-red-300 w-full text-right">Remove Day</button>}
+                                            <button onClick={() => handleRemoveDay(pkgIndex, dayIndex)} className="text-xs text-red-400 hover:text-red-300 w-full text-right">Remove Day</button>
                                         </div>
                                     ))}
                                     <button onClick={() => handleAddDay(pkgIndex)} className="text-sm text-amber-400 hover:text-amber-300 flex items-center"><PlusIcon/> Add Day</button>
@@ -386,20 +342,6 @@ const App = () => {
                                             </label>
                                         ))}
                                      </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <h4 className="font-semibold text-gray-400">Custom Features</h4>
-                                    {pkg.customFeatures.map((feature) => (
-                                        <div key={feature.id} className="p-3 bg-gray-900/50 rounded-md space-y-2">
-                                            <input value={feature.name} onChange={e => handleCustomFeatureChange(pkgIndex, feature.id, 'name', e.target.value)} type="text" placeholder="Custom Feature Name" className="w-full bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <input value={feature.price} onChange={e => handleCustomFeatureChange(pkgIndex, feature.id, 'price', e.target.value)} type="text" placeholder="$ Price" className="bg-gray-700 text-sm p-1.5 rounded-md"/>
-                                                <button onClick={() => handleRemoveCustomFeature(pkgIndex, feature.id)} className="text-xs text-red-400 hover:text-red-300 text-center bg-gray-700/50 rounded-md">Remove</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <button onClick={() => handleAddCustomFeature(pkgIndex)} className="text-sm text-amber-400 hover:text-amber-300 flex items-center"><PlusIcon/> Add Custom Feature</button>
                                 </div>
                                 
                                 <div>
@@ -462,20 +404,6 @@ const App = () => {
                                         </ul>
                                     </div>
                                 }
-
-                                {pkg.customFeatures && pkg.customFeatures.filter(f => f.name).length > 0 &&
-                                    <div className="mt-6 pt-4 border-t border-gray-700">
-                                        <h4 className="font-semibold text-center text-gray-400 uppercase text-xs tracking-widest mb-3">Custom Additions</h4>
-                                        <ul className="space-y-3 text-gray-300">
-                                            {pkg.customFeatures.filter(f => f.name).map((feature) => (
-                                                <li key={feature.id} className="flex items-start justify-between">
-                                                    <div><span className="text-amber-400/50 mr-3 mt-1">&#43;</span><span>{feature.name}</span></div>
-                                                    {feature.price && <span>${feature.price}</span>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                }
                             </div>
                         ))}
                     </div>
@@ -505,3 +433,4 @@ const App = () => {
 };
 
 export default App;
+
