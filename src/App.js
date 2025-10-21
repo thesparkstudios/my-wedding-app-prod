@@ -1,360 +1,441 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, addDoc, setDoc, deleteDoc, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
 
-// --- Firebase Configuration ---
-var __firebase_config;
-var __app_id;
-var __initial_auth_token;
+// --- INITIAL DATA & TEMPLATES ---
+const packageTemplates = {
+  essential: {
+    name: 'Essential Collection',
+    inclusions: [
+      'Unlimited Professionally Edited Photos',
+      'Cinematic Highlight Film (3-5 min)',
+      'Full Feature Film (Full Day Edit)',
+      'Online Gallery + Delivery',
+    ],
+  },
+  classic: {
+    name: 'Classic Collection',
+    inclusions: [
+      'Unlimited Edited Photos',
+      'Cinematic Highlight Film (4-6 min)',
+      'Full Feature Film (30-45 min)',
+      'Drone Coverage Included',
+      'Content Creation (for Reels/TikToks)',
+      'Engagement E-Shoot (1 hour)',
+      'Online Gallery + Delivery',
+    ],
+  },
+  signature: {
+    name: 'Signature Collection',
+    inclusions: [
+      'Unlimited Edited Photos',
+      'Cinematic Highlight Film (5-7 min)',
+      'Full Feature Film (45-60 min)',
+      'Drone Coverage Included',
+      'Dedicated Content Creator',
+      'Engagement E-Shoot + Love Story Film',
+      'Personalized Story & Timeline Consultation',
+      'Luxury Keepsake Box (USB + 20 Fine Art Prints)',
+      'Priority Editing Delivery',
+    ],
+  },
+};
 
-let app;
-let auth;
-let db;
-let firebaseInitializationError = null;
+const getNewQuote = () => ({
+  id: Date.now(),
+  lastSaved: new Date().toISOString(),
+  client: {
+    primaryName: '',
+    partnerName: '',
+    email: '',
+    phone: '',
+    weddingDate: '',
+    venue: '',
+    notes: '',
+  },
+  package: {
+    name: 'Custom Package',
+    inclusions: [''],
+  },
+  days: [{ id: Date.now(), name: 'Wedding Day', hours: 8, crew: '1 Photographer, 1 Videographer' }],
+  addOns: [],
+  pricing: {
+    basePrice: '',
+    addOnsTotal: '',
+    tax: '',
+    discount: '',
+    grandTotal: '',
+  },
+});
 
-try {
-    let firebaseConfig;
-    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-        firebaseConfig = JSON.parse(__firebase_config);
-    } else if (process.env.REACT_APP_FIREBASE_API_KEY) {
-        firebaseConfig = {
-            apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-            authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.REACT_APP_FIREBASE_APP_ID,
-            measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
-        };
-    } else {
-        throw new Error("Firebase configuration was not provided by the environment.");
-    }
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        throw new Error("Firebase config is missing apiKey or projectId.");
-    }
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-} catch (e) {
-    console.error("FATAL: Firebase initialization failed.", e);
-    firebaseInitializationError = e.message;
-}
+// --- HELPER ICONS ---
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+);
+const PlusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+);
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-// --- Helper Components & Data ---
-const IconCheck = () => <svg className="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>;
-const LoadingSpinner = ({ text }) => (<div className="flex items-center justify-center"><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>{text}</div>);
-const AppHeader = ({ title, subtitle }) => (<div className="text-center mb-10"><h1 className="text-4xl md:text-5xl font-bold text-gray-800">{title}</h1><p className="text-xl text-gray-500 mt-2">{subtitle}</p></div>);
-const faqData = [{q:"What happens before the event?",a:"Before your event takes place, we'll discuss the flow of the day..."},{q:"How does the payment work?",a:"Ideally, we'd like to receive at least 30% of the total amount..."},{q:"When do you get the pictures and video?",a:"Our work begins right after your payment has been cleared..."},{q:"Want to book us?",a:"To finalize your booking, we'll ask you to fill out a contract..."}];
-const newPackageTemplate = { name: '', price: 0, description: '', team: '', hours: 0, features: [''], createdAt: new Date() };
-
-// --- Main App Component ---
+// --- MAIN APP COMPONENT ---
 const App = () => {
-    // App state
-    const [userId, setUserId] = useState(null);
-    const [isAuthReady, setIsAuthReady] = useState(false);
-    const [currentView, setCurrentView] = useState('packageDashboard'); // packageDashboard, editPackage, customizeQuote, viewQuote
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-    
-    // Package state
-    const [packages, setPackages] = useState([]);
-    const [isLoadingPackages, setIsLoadingPackages] = useState(true);
-    const [editingPackage, setEditingPackage] = useState(null);
+  const [quotes, setQuotes] = useState([]);
+  const [activeQuote, setActiveQuote] = useState(getNewQuote());
+  const [message, setMessage] = useState('');
+  const printRef = useRef();
 
-    // Quote state
-    const [quoteData, setQuoteData] = useState(null);
-    const [generatedQuoteUrl, setGeneratedQuoteUrl] = useState('');
-
-    // --- Firebase Logic ---
-    useEffect(() => {
-        if (!auth) { setIsAuthReady(true); return; }
-        const unsubscribe = onAuthStateChanged(auth, user => {
-            if (user) setUserId(user.uid); else setUserId(null);
-            setIsAuthReady(true);
-        });
-        const signIn = async () => {
-            try {
-                if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
-                else await signInAnonymously(auth);
-            } catch (err) { console.error("Auth Error:", err); setError(`Authentication failed: ${err.message}`); }
-        };
-        signIn();
-        return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (isAuthReady) {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('authorId') && params.get('quoteId')) {
-                loadQuote(params.get('authorId'), params.get('quoteId'));
-            } else if (userId) {
-                const packagesQuery = query(collection(db, `artifacts/${appId}/users/${userId}/packages`), orderBy("createdAt", "desc"));
-                const unsubscribe = onSnapshot(packagesQuery, (snapshot) => {
-                    const pkgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setPackages(pkgs);
-                    setIsLoadingPackages(false);
-                }, (err) => {
-                    console.error("Error fetching packages: ", err);
-                    setError("Could not load packages.");
-                    setIsLoadingPackages(false);
-                });
-                return () => unsubscribe();
-            } else {
-                setIsLoadingPackages(false);
-            }
-        }
-    }, [isAuthReady, userId]);
-
-    const handleSavePackage = async () => {
-        if (!userId || !editingPackage) return;
-        setIsLoading(true); setError('');
-        try {
-            const pkgData = { ...editingPackage, price: Number(editingPackage.price) || 0, hours: Number(editingPackage.hours) || 0 };
-            const collectionRef = collection(db, `artifacts/${appId}/users/${userId}/packages`);
-            if (editingPackage.id) { // Update existing
-                const docRef = doc(collectionRef, editingPackage.id);
-                await setDoc(docRef, pkgData, { merge: true });
-            } else { // Create new
-                await addDoc(collectionRef, { ...pkgData, createdAt: new Date() });
-            }
-            setEditingPackage(null);
-            setCurrentView('packageDashboard');
-        } catch (err) {
-            console.error("Error saving package: ", err);
-            setError(`Failed to save package: ${err.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleDeletePackage = async (packageId) => {
-        if (!userId || !window.confirm("Are you sure you want to delete this package? This cannot be undone.")) return;
-        try {
-            await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/packages`, packageId));
-        } catch (err) {
-            console.error("Error deleting package: ", err);
-            setError(`Failed to delete package: ${err.message}`);
-        }
-    };
-
-    const handleCreateQuoteFromPackage = (pkg) => {
-        setQuoteData({
-            clientName: '',
-            basePackage: pkg,
-            customDays: [{ id: Date.now(), day: 'Wedding Day', hours: `${pkg.hours} hours`, team: pkg.team }],
-            customAddOns: []
-        });
-        setCurrentView('customizeQuote');
-    };
-
-    const saveQuote = async () => {
-        if (!db || !userId || !quoteData) { setError("Data not ready."); return; }
-        if (!quoteData.clientName) { setError('Client Name is required.'); return; }
-        
-        setIsLoading(true); setError('');
-        try {
-            const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/quotes`), { ...quoteData, authorId: userId, createdAt: new Date().toISOString() });
-            const url = `${window.location.origin}${window.location.pathname}?authorId=${userId}&quoteId=${docRef.id}`;
-            setGeneratedQuoteUrl(url);
-            setCurrentView('viewQuote');
-        } catch (e) {
-            console.error("Error saving quote: ", e);
-            setError(`Failed to save quote: ${e.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const loadQuote = async (authorId, quoteId) => {
-        setIsLoading(true); setError('');
-        try {
-            const docRef = doc(db, `artifacts/${appId}/users/${authorId}/quotes`, quoteId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                setQuoteData(docSnap.data());
-                const url = `${window.location.origin}${window.location.pathname}?authorId=${authorId}&quoteId=${quoteId}`;
-                setGeneratedQuoteUrl(url);
-                setCurrentView('viewQuote');
-            } else {
-                setError("Quote not found.");
-                setCurrentView('packageDashboard');
-            }
-        } catch (e) {
-            console.error("Error loading quote: ", e);
-            setError(`Failed to load quote: ${e.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const getFinalQuoteDetails = () => {
-        if (!quoteData) return null;
-        const addOnsPrice = quoteData.customAddOns.reduce((acc, addOn) => acc + (Number(addOn.price) || 0), 0);
-        const totalPrice = quoteData.basePackage.price + addOnsPrice;
-        return { ...quoteData, totalPrice };
-    };
-    
-    // --- Render Logic ---
-    if (firebaseInitializationError) return <div className="min-h-screen flex items-center justify-center bg-red-50 p-4"><div className="text-center bg-white p-8 rounded-lg shadow-lg border border-red-200"><h1 className="text-2xl font-bold text-red-700 mb-2">Application Error</h1><p className="text-red-600">Could not initialize Firebase.</p><p className="text-sm text-gray-500 mt-4 font-mono bg-gray-100 p-2 rounded">{firebaseInitializationError}</p></div></div>;
-    if (!isAuthReady) return <div className="min-h-screen flex items-center justify-center">Initializing...</div>;
-
-    // --- View 1: Package Dashboard ---
-    if (currentView === 'packageDashboard') {
-        return (
-            <div className="min-h-screen bg-slate-50 p-4 sm:p-8 font-inter">
-                <div className="max-w-7xl mx-auto">
-                    <AppHeader title="Package Dashboard" subtitle="Manage your packages or create a new one." />
-                    <div className="text-center mb-8">
-                        <button onClick={() => { setEditingPackage(newPackageTemplate); setCurrentView('editPackage'); }} className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">Create New Package</button>
-                    </div>
-                    {isLoadingPackages ? <p>Loading packages...</p> : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {packages.map(pkg => (
-                                <div key={pkg.id} className="bg-white rounded-2xl shadow-lg p-6 flex flex-col">
-                                    <h2 className="text-2xl font-bold text-gray-800">{pkg.name}</h2>
-                                    <p className="text-3xl font-extrabold text-indigo-600 my-3">${Number(pkg.price).toLocaleString()}</p>
-                                    <p className="text-gray-600 flex-grow text-sm mb-4">{pkg.description}</p>
-                                    <div className="mt-auto pt-4 border-t space-y-2">
-                                        <button onClick={() => handleCreateQuoteFromPackage(pkg)} className="w-full text-center bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 transition">Create Quote</button>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => { setEditingPackage(pkg); setCurrentView('editPackage'); }} className="w-full bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition">Edit</button>
-                                            <button onClick={() => handleDeletePackage(pkg.id)} className="w-full bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition">Delete</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
+  // Load quotes from local storage on initial render
+  useEffect(() => {
+    try {
+      const savedQuotes = localStorage.getItem('sparkStudiosQuotes');
+      if (savedQuotes) {
+        setQuotes(JSON.parse(savedQuotes));
+      }
+    } catch (error) {
+      console.error("Failed to load quotes from local storage:", error);
     }
+  }, []);
 
-    // --- View 2: Package Editor ---
-    if (currentView === 'editPackage' && editingPackage) {
-        const handleFeatureChange = (index, value) => {
-            const newFeatures = [...editingPackage.features];
-            newFeatures[index] = value;
-            setEditingPackage(p => ({ ...p, features: newFeatures }));
-        };
-        const addFeature = () => setEditingPackage(p => ({ ...p, features: [...p.features, ''] }));
-        const removeFeature = (index) => setEditingPackage(p => ({ ...p, features: p.features.filter((_, i) => i !== index) }));
+  // Save quotes to local storage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('sparkStudiosQuotes', JSON.stringify(quotes));
+    } catch (error)      {
+      console.error("Failed to save quotes to local storage:", error);
+    }
+  }, [quotes]);
 
-        return (
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-inter">
-                <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-8">
-                    <AppHeader title={editingPackage.id ? "Edit Package" : "Create New Package"} subtitle="Define the details for this package." />
-                    <div className="space-y-6">
-                        <div><label className="block text-sm font-medium text-gray-700">Package Name</label><input type="text" value={editingPackage.name} onChange={e => setEditingPackage(p => ({...p, name: e.target.value}))} className="mt-1 block w-full p-2 border rounded-md"/></div>
-                        <div><label className="block text-sm font-medium text-gray-700">Price ($)</label><input type="number" value={editingPackage.price} onChange={e => setEditingPackage(p => ({...p, price: e.target.value}))} className="mt-1 block w-full p-2 border rounded-md"/></div>
-                        <div><label className="block text-sm font-medium text-gray-700">Description</label><textarea value={editingPackage.description} onChange={e => setEditingPackage(p => ({...p, description: e.target.value}))} className="mt-1 block w-full p-2 border rounded-md" rows="3"></textarea></div>
-                        <div><label className="block text-sm font-medium text-gray-700">Team (e.g., 1 Photographer)</label><input type="text" value={editingPackage.team} onChange={e => setEditingPackage(p => ({...p, team: e.target.value}))} className="mt-1 block w-full p-2 border rounded-md"/></div>
-                        <div><label className="block text-sm font-medium text-gray-700">Hours</label><input type="number" value={editingPackage.hours} onChange={e => setEditingPackage(p => ({...p, hours: e.target.value}))} className="mt-1 block w-full p-2 border rounded-md"/></div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
-                            {editingPackage.features.map((feature, index) => (
-                                <div key={index} className="flex items-center gap-2 mb-2">
-                                    <input type="text" value={feature} onChange={e => handleFeatureChange(index, e.target.value)} className="flex-grow p-2 border rounded-md"/>
-                                    <button onClick={() => removeFeature(index)} className="bg-red-500 text-white p-2 rounded-md">X</button>
-                                </div>
-                            ))}
-                            <button onClick={addFeature} className="text-sm bg-blue-500 text-white py-1 px-3 rounded-md mt-2">Add Feature</button>
-                        </div>
-                        <div className="flex justify-end gap-4 pt-6 border-t">
-                            <button onClick={() => setCurrentView('packageDashboard')} className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancel</button>
-                            <button onClick={handleSavePackage} disabled={isLoading} className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg">{isLoading ? <LoadingSpinner text="Saving..."/> : "Save Package"}</button>
-                        </div>
-                        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
-                    </div>
-                </div>
-            </div>
-        );
-    }
+  const showMessage = (msg) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(''), 3000);
+  };
 
-    // --- Views 3 & 4 (Customize & View Quote) ---
-    // These views are largely similar to before but adapted for the new data structure.
-    // This section is condensed for brevity but contains the full logic.
-    if (currentView === 'customizeQuote' && quoteData) {
-        const handleDayChange = (id, field, value) => setQuoteData(prev => ({ ...prev, customDays: prev.customDays.map(d => d.id === id ? { ...d, [field]: value } : d) }));
-        const handleAddDay = () => setQuoteData(prev => ({ ...prev, customDays: [...prev.customDays, { id: Date.now(), day: `Day ${prev.customDays.length + 1}`, hours: '', team: '' }] }));
-        const handleRemoveDay = (id) => setQuoteData(prev => ({ ...prev, customDays: prev.customDays.filter(d => d.id !== id) }));
-        const handleAddOnChange = (id, field, value) => setQuoteData(prev => ({ ...prev, customAddOns: prev.customAddOns.map(a => a.id === id ? { ...a, [field]: value } : a) }));
-        const handleAddAddOn = () => setQuoteData(prev => ({ ...prev, customAddOns: [...prev.customAddOns, { id: Date.now(), description: '', price: 0 }] }));
-        const handleRemoveAddOn = (id) => setQuoteData(prev => ({ ...prev, customAddOns: prev.customAddOns.filter(a => a.id !== id) }));
-        
-        return (
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-inter">
-                <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-8">
-                    <AppHeader title={`Quote for: ${quoteData.basePackage.name}`} subtitle="Finalize the details for your client." />
-                    <div className="space-y-8">
-                         <div>
-                            <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
-                            <input type="text" id="clientName" name="clientName" value={quoteData.clientName} onChange={(e) => setQuoteData(q => ({...q, clientName: e.target.value}))} className="block w-full px-4 py-2 border rounded-md" placeholder="Jane & John Doe" />
-                        </div>
-                        <div>
-                             <h3 className="text-xl font-semibold text-gray-800 mb-3 border-b pb-2">Coverage Details</h3>
-                             {quoteData.customDays.map((row) => (
-                                <div key={row.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                    <input type="text" value={row.day} onChange={(e) => handleDayChange(row.id, 'day', e.target.value)} className="w-full p-2 border-gray-300 rounded-md" placeholder="Day"/>
-                                    <input type="text" value={row.hours} onChange={(e) => handleDayChange(row.id, 'hours', e.target.value)} className="w-full p-2 border-gray-300 rounded-md" placeholder="Hours"/>
-                                    <input type="text" value={row.team} onChange={(e) => handleDayChange(row.id, 'team', e.target.value)} className="w-full p-2 border-gray-300 rounded-md" placeholder="Team"/>
-                                    <button onClick={() => handleRemoveDay(row.id)} className="bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 px-3 rounded-md transition">Remove</button>
-                                </div>
-                             ))}
-                             <button onClick={handleAddDay} className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition">Add Day</button>
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-semibold text-gray-800 mb-3 border-b pb-2">Optional Add-ons</h3>
-                             {quoteData.customAddOns.map((addOn) => (
-                                <div key={addOn.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                    <input type="text" value={addOn.description} onChange={(e) => handleAddOnChange(addOn.id, 'description', e.target.value)} className="md:col-span-2 w-full p-2 border-gray-300 rounded-md" placeholder="Description"/>
-                                    <input type="number" value={addOn.price} onChange={(e) => handleAddOnChange(addOn.id, 'price', e.target.value)} className="w-full p-2 border-gray-300 rounded-md" placeholder="Price ($)"/>
-                                    <button onClick={() => handleRemoveAddOn(addOn.id)} className="bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 px-3 rounded-md transition">Remove</button>
-                                </div>
-                            ))}
-                            <button onClick={handleAddAddOn} className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition">Add Add-on</button>
-                        </div>
-                        <div className="text-center pt-8 border-t flex items-center justify-center gap-4">
-                            <button onClick={() => setCurrentView('packageDashboard')} className="bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-lg">Back to Dashboard</button>
-                            <button onClick={saveQuote} disabled={isLoading} className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg">{isLoading ? <LoadingSpinner text="Saving..."/> : 'Save & Generate Quote'}</button>
-                        </div>
-                         {error && <p className="text-red-500 text-center mt-4">{error}</p>}
-                    </div>
-                </div>
-            </div>
-        );
+  const handleSelectPackage = (pkgKey) => {
+    const template = packageTemplates[pkgKey];
+    setActiveQuote(prev => ({
+      ...prev,
+      package: { ...template }
+    }));
+  };
+
+  const handleInputChange = (section, field, value) => {
+    setActiveQuote(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleListChange = (listName, index, field, value) => {
+    const newList = [...activeQuote[listName]];
+    newList[index][field] = value;
+    setActiveQuote(prev => ({ ...prev, [listName]: newList }));
+  };
+
+  const handleAddListItem = (listName, newItem) => {
+    setActiveQuote(prev => ({ ...prev, [listName]: [...prev[listName], newItem] }));
+  };
+  
+  const handleRemoveListItem = (listName, index) => {
+    setActiveQuote(prev => ({ ...prev, [listName]: prev[listName].filter((_, i) => i !== index) }));
+  };
+
+  const handleInclusionChange = (index, value) => {
+     const newInclusions = [...activeQuote.package.inclusions];
+     newInclusions[index] = value;
+     setActiveQuote(prev => ({...prev, package: {...prev.package, inclusions: newInclusions}}));
+  };
+  
+  const handleAddInclusion = () => {
+    setActiveQuote(prev => ({...prev, package: {...prev.package, inclusions: [...prev.package.inclusions, '']}}));
+  };
+  
+  const handleRemoveInclusion = (index) => {
+    setActiveQuote(prev => ({...prev, package: {...prev.package, inclusions: prev.package.inclusions.filter((_, i) => i !== index)}}));
+  };
+
+  const handleSaveQuote = () => {
+    const updatedQuote = { ...activeQuote, lastSaved: new Date().toISOString() };
+    const existingIndex = quotes.findIndex(q => q.id === updatedQuote.id);
+    if (existingIndex > -1) {
+      const newQuotes = [...quotes];
+      newQuotes[existingIndex] = updatedQuote;
+      setQuotes(newQuotes);
+    } else {
+      setQuotes([...quotes, updatedQuote]);
     }
-    
-    if (currentView === 'viewQuote' && quoteData) {
-        const finalQuote = getFinalQuoteDetails();
-        return (
-             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 sm:p-8 font-inter">
-                <div className="max-w-5xl mx-auto">
-                    {/* ... Abridged for brevity ... This part is the same polished quote view as before ... */}
-                    <div className="bg-white shadow-2xl rounded-2xl overflow-hidden">
-                        <div className="p-8 md:p-12">
-                            <div className="text-center">
-                                <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800 tracking-tight">{finalQuote.basePackage.name}</h1>
-                                <p className="text-xl text-gray-500 mt-2">Prepared for: <span className="text-gray-700 font-semibold">{finalQuote.clientName}</span></p>
-                            </div>
-                             <div className="mt-10 p-8 bg-slate-50 rounded-2xl"><h3 className="text-2xl font-bold text-gray-800 mb-4">What's Included</h3><ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">{finalQuote.basePackage.features.map((feature, i) => <li key={i} className="flex items-start"><IconCheck/><span>{feature}</span></li>)}</ul></div>
-                             <div className="mt-8"><h3 className="text-2xl font-bold text-gray-800 mb-4">Coverage</h3><div className="overflow-x-auto border rounded-lg"><table className="min-w-full"><thead className="bg-gray-50"><tr><th className="p-3 text-left text-sm font-semibold">Day</th><th className="p-3 text-left text-sm font-semibold">Hours</th><th className="p-3 text-left text-sm font-semibold">Team</th></tr></thead><tbody className="bg-white divide-y">{finalQuote.customDays.map(row => <tr key={row.id}><td className="p-3">{row.day}</td><td className="p-3">{row.hours}</td><td className="p-3">{row.team}</td></tr>)}</tbody></table></div></div>
-                            <div className="mt-8 text-center bg-indigo-600 text-white p-8 rounded-2xl"><h3 className="text-xl font-semibold uppercase tracking-wider">Total Investment</h3><p className="text-6xl font-extrabold mt-2">${finalQuote.totalPrice.toLocaleString()}</p><p className="mt-2 opacity-80">Based on a package price of ${finalQuote.basePackage.price.toLocaleString()}</p></div>
-                             {finalQuote.customAddOns.length > 0 && (<div className="mt-8"><h3 className="text-2xl font-bold text-gray-800 mb-4">Optional Add-ons Included</h3><div className="bg-gray-50 rounded-lg p-6 border">{finalQuote.customAddOns.map(addOn => (<div key={addOn.id} className="flex justify-between py-2 border-b last:border-0"><span>{addOn.description}</span><span className="font-semibold">${(Number(addOn.price) || 0).toLocaleString()}</span></div>))}</div></div>)}
-                        </div>
-                         {/* FAQ Section can go here */}
-                    </div>
-                    <div className="mt-8 text-center"><button onClick={() => { setCurrentView('packageDashboard'); setGeneratedQuoteUrl(''); }} className="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg">Back to Dashboard</button></div>
-                </div>
-            </div>
-        );
+    setActiveQuote(updatedQuote);
+    showMessage('Quote saved successfully!');
+  };
+
+  const handleLoadQuote = (quoteId) => {
+    const quoteToLoad = quotes.find(q => q.id === quoteId);
+    if (quoteToLoad) {
+      setActiveQuote(quoteToLoad);
+      showMessage('Quote loaded.');
     }
-    
-    return <div>Loading...</div>; // Fallback
+  };
+
+  const handleNewQuote = () => {
+    setActiveQuote(getNewQuote());
+    showMessage('Started a new blank quote.');
+  };
+  
+  const handleDeleteQuote = (quoteId) => {
+    if (window.confirm("Are you sure you want to delete this quote permanently?")) {
+        setQuotes(quotes.filter(q => q.id !== quoteId));
+        if (activeQuote.id === quoteId) {
+            handleNewQuote();
+        }
+        showMessage('Quote deleted.');
+    }
+  };
+
+  const handleCopySummary = () => {
+    const q = activeQuote;
+    const summary = `
+QUOTE SUMMARY for ${q.client.primaryName}
+===================================
+Package: ${q.package.name}
+Total Price: $${q.pricing.grandTotal || '___'}
+
+CLIENT DETAILS:
+- Names: ${q.client.primaryName}${q.client.partnerName ? ' & ' + q.client.partnerName : ''}
+- Contact: ${q.client.email} | ${q.client.phone}
+- Date: ${q.client.weddingDate}
+- Venue: ${q.client.venue}
+
+COVERAGE:
+${q.days.map(d => `- ${d.name}: ${d.hours} hours - ${d.crew}`).join('\n')}
+
+INCLUSIONS:
+${q.package.inclusions.map(i => `- ${i}`).join('\n')}
+
+ADD-ONS:
+${q.addOns.map(a => `- ${a.name}: $${a.price}`).join('\n')}
+
+PRICING:
+- Base: $${q.pricing.basePrice}
+- Add-ons: $${q.pricing.addOnsTotal}
+- Tax: $${q.pricing.tax}
+- Discount: $${q.pricing.discount}
+-----------------------------------
+GRAND TOTAL: $${q.pricing.grandTotal}
+    `;
+    navigator.clipboard.writeText(summary.trim());
+    showMessage('Quote summary copied to clipboard!');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <>
+      <div className="min-h-screen bg-gray-900 text-gray-200 font-sans antialiased print:bg-white print:text-black">
+        {/* --- Header & Controls --- */}
+        <header className="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-20 print:hidden">
+          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                <h1 className="text-xl font-bold text-amber-400">The Spark Studios</h1>
+                <h2 className="ml-4 text-lg font-light text-gray-400 hidden md:block">Quote Configurator</h2>
+              </div>
+              <div className="flex items-center space-x-2">
+                 <div className="relative">
+                  <select
+                    onChange={(e) => e.target.value ? handleLoadQuote(Number(e.target.value)) : handleNewQuote()}
+                    value={activeQuote.id}
+                    className="bg-gray-800 border border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="">-- Load a Quote --</option>
+                    {quotes.sort((a,b) => new Date(b.lastSaved) - new Date(a.lastSaved)).map(q => (
+                      <option key={q.id} value={q.id}>
+                        {q.client.primaryName || 'Untitled Quote'} ({new Date(q.lastSaved).toLocaleTimeString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button onClick={handleNewQuote} className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-md">New</button>
+                <button onClick={handleSaveQuote} className="px-3 py-2 text-sm bg-amber-500 text-black hover:bg-amber-400 rounded-md font-semibold">Save</button>
+                <button onClick={handleCopySummary} className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-md">Copy</button>
+                <button onClick={handlePrint} className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-md">Print</button>
+                {activeQuote.id && <button onClick={() => handleDeleteQuote(activeQuote.id)} className="px-3 py-2 text-sm bg-red-800 hover:bg-red-700 rounded-md"><TrashIcon/></button>}
+              </div>
+            </div>
+          </div>
+          {message && <div className="bg-emerald-600 text-white text-center text-sm py-1">{message}</div>}
+        </header>
+
+        {/* --- Main Content --- */}
+        <main className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 print:p-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:grid-cols-1">
+            
+            {/* --- Left Column: Configuration --- */}
+            <div className="lg:col-span-2 space-y-8 print:hidden">
+              {/* Package Selector */}
+              <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg">
+                <h3 className="text-xl font-semibold mb-4 text-amber-400 border-b border-gray-700 pb-3">1. Select Package Template</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {Object.keys(packageTemplates).map(key => (
+                    <button key={key} onClick={() => handleSelectPackage(key)} className={`p-4 rounded-lg text-left transition ${activeQuote.package.name === packageTemplates[key].name ? 'bg-amber-500/20 border-amber-500' : 'bg-gray-700 hover:bg-gray-600'} border border-transparent`}>
+                      <h4 className="font-bold capitalize">{key}</h4>
+                      <p className="text-xs text-gray-400">{packageTemplates[key].inclusions.slice(0, 2).join(', ')}...</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Package Details */}
+              <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg">
+                 <h3 className="text-xl font-semibold mb-4 text-amber-400 border-b border-gray-700 pb-3">2. Customize Inclusions</h3>
+                 <div className="space-y-2">
+                    {activeQuote.package.inclusions.map((inclusion, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <input type="text" value={inclusion} onChange={(e) => handleInclusionChange(index, e.target.value)} className="flex-grow bg-gray-700 border border-gray-600 rounded-md p-2 text-sm focus:ring-amber-500 focus:border-amber-500"/>
+                            <button onClick={() => handleRemoveInclusion(index)} className="p-2 bg-gray-600 hover:bg-red-800 rounded-md"><TrashIcon/></button>
+                        </div>
+                    ))}
+                 </div>
+                 <button onClick={handleAddInclusion} className="text-sm mt-3 flex items-center px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md"><PlusIcon/>Add Inclusion</button>
+              </div>
+
+              {/* Time Configuration */}
+              <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg">
+                <h3 className="text-xl font-semibold mb-4 text-amber-400 border-b border-gray-700 pb-3">3. Configure Coverage Days</h3>
+                <div className="space-y-4">
+                  {activeQuote.days.map((day, index) => (
+                    <div key={day.id} className="grid grid-cols-1 sm:grid-cols-8 gap-3 items-center">
+                      <input type="text" placeholder="Day Name (e.g., Mehndi)" value={day.name} onChange={e => handleListChange('days', index, 'name', e.target.value)} className="sm:col-span-3 bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                      <input type="text" placeholder="Hours" value={day.hours} onChange={e => handleListChange('days', index, 'hours', e.target.value)} className="sm:col-span-1 bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                      <input type="text" placeholder="Crew Setup" value={day.crew} onChange={e => handleListChange('days', index, 'crew', e.target.value)} className="sm:col-span-3 bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                      <button onClick={() => handleRemoveListItem('days', index)} className="p-2 bg-gray-600 hover:bg-red-800 rounded-md sm:col-span-1"><TrashIcon/></button>
+                    </div>
+                  ))}
+                </div>
+                 <button onClick={() => handleAddListItem('days', {id: Date.now(), name:'', hours:'', crew:''})} className="text-sm mt-4 flex items-center px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md"><PlusIcon/>Add Day</button>
+              </div>
+              
+              {/* Add-Ons */}
+              <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg">
+                <h3 className="text-xl font-semibold mb-4 text-amber-400 border-b border-gray-700 pb-3">4. Optional Add-ons & Custom Items</h3>
+                 <div className="space-y-4">
+                  {activeQuote.addOns.map((addOn, index) => (
+                    <div key={addOn.id} className="grid grid-cols-1 sm:grid-cols-8 gap-3 items-center">
+                      <input type="text" placeholder="Item Name (e.g., Album)" value={addOn.name} onChange={e => handleListChange('addOns', index, 'name', e.target.value)} className="sm:col-span-4 bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                      <input type="text" placeholder="Price" value={addOn.price} onChange={e => handleListChange('addOns', index, 'price', e.target.value)} className="sm:col-span-1 bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                      <input type="text" placeholder="Optional Notes" value={addOn.notes} onChange={e => handleListChange('addOns', index, 'notes', e.target.value)} className="sm:col-span-2 bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                      <button onClick={() => handleRemoveListItem('addOns', index)} className="p-2 bg-gray-600 hover:bg-red-800 rounded-md sm:col-span-1"><TrashIcon/></button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => handleAddListItem('addOns', {id: Date.now(), name:'', price:'', notes:''})} className="text-sm mt-4 flex items-center px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md"><PlusIcon/>Add Item</button>
+              </div>
+            </div>
+
+            {/* --- Right Column: Client & Totals --- */}
+            <div className="lg:col-span-1 space-y-8 print:hidden">
+              <div className="bg-gray-800/50 p-6 rounded-xl shadow-lg sticky top-24">
+                <h3 className="text-xl font-semibold mb-4 text-amber-400 border-b border-gray-700 pb-3">Client Information</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="text" placeholder="Primary Name" value={activeQuote.client.primaryName} onChange={e => handleInputChange('client', 'primaryName', e.target.value)} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                    <input type="text" placeholder="Partner Name" value={activeQuote.client.partnerName} onChange={e => handleInputChange('client', 'partnerName', e.target.value)} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                  </div>
+                  <input type="email" placeholder="Email Address" value={activeQuote.client.email} onChange={e => handleInputChange('client', 'email', e.target.value)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                  <input type="tel" placeholder="Phone Number" value={activeQuote.client.phone} onChange={e => handleInputChange('client', 'phone', e.target.value)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="text" placeholder="Wedding Date(s)" value={activeQuote.client.weddingDate} onChange={e => handleInputChange('client', 'weddingDate', e.target.value)} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                    <input type="text" placeholder="Venue(s)" value={activeQuote.client.venue} onChange={e => handleInputChange('client', 'venue', e.target.value)} className="bg-gray-700 border-gray-600 rounded-md p-2 text-sm"/>
+                  </div>
+                   <textarea placeholder="Notes (cultural details, travel, etc.)" value={activeQuote.client.notes} onChange={e => handleInputChange('client', 'notes', e.target.value)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2 text-sm" rows="3"></textarea>
+                </div>
+                
+                <h3 className="text-xl font-semibold mt-8 mb-4 text-amber-400 border-b border-gray-700 pb-3">Pricing (Manual Entry)</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center"><label className="w-28 font-semibold text-sm">Base Price</label><input type="text" placeholder="$0" value={activeQuote.pricing.basePrice} onChange={e => handleInputChange('pricing', 'basePrice', e.target.value)} className="flex-grow bg-gray-700 border-gray-600 rounded-md p-2 text-sm text-right"/></div>
+                    <div className="flex items-center"><label className="w-28 font-semibold text-sm">Add-ons</label><input type="text" placeholder="$0" value={activeQuote.pricing.addOnsTotal} onChange={e => handleInputChange('pricing', 'addOnsTotal', e.target.value)} className="flex-grow bg-gray-700 border-gray-600 rounded-md p-2 text-sm text-right"/></div>
+                    <div className="flex items-center"><label className="w-28 font-semibold text-sm">Tax</label><input type="text" placeholder="$0" value={activeQuote.pricing.tax} onChange={e => handleInputChange('pricing', 'tax', e.target.value)} className="flex-grow bg-gray-700 border-gray-600 rounded-md p-2 text-sm text-right"/></div>
+                    <div className="flex items-center"><label className="w-28 font-semibold text-sm">Discount</label><input type="text" placeholder="$0" value={activeQuote.pricing.discount} onChange={e => handleInputChange('pricing', 'discount', e.target.value)} className="flex-grow bg-gray-700 border-gray-600 rounded-md p-2 text-sm text-right"/></div>
+                    <div className="pt-4 border-t border-gray-700 flex items-center"><label className="w-28 font-bold text-amber-400 text-lg">Grand Total</label><input type="text" placeholder="$0.00" value={activeQuote.pricing.grandTotal} onChange={e => handleInputChange('pricing', 'grandTotal', e.target.value)} className="flex-grow bg-gray-900 border-amber-500 rounded-md p-2 text-lg font-bold text-amber-400 text-right"/></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* --- Printable Area --- */}
+            <div ref={printRef} className="hidden print:block col-span-1 p-8 bg-white text-black">
+                 <div className="text-center mb-12">
+                     <div className="w-48 h-16 bg-gray-200 mx-auto mb-4 flex items-center justify-center"><span className="text-gray-500">The Spark Studios Logo</span></div>
+                     <h1 className="text-4xl font-bold">Quote Proposal</h1>
+                 </div>
+
+                 <div className="mb-8">
+                     <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Client Details</h2>
+                     <p><strong>Prepared for:</strong> {activeQuote.client.primaryName} {activeQuote.client.partnerName && `& ${activeQuote.client.partnerName}`}</p>
+                     <p><strong>Contact:</strong> {activeQuote.client.email} | {activeQuote.client.phone}</p>
+                     <p><strong>Date:</strong> {activeQuote.client.weddingDate}</p>
+                     <p><strong>Venue:</strong> {activeQuote.client.venue}</p>
+                 </div>
+
+                 <div className="mb-8">
+                     <h2 className="text-2xl font-semibold border-b pb-2 mb-4">{activeQuote.package.name}</h2>
+                     <ul className="list-disc list-inside space-y-1">
+                        {activeQuote.package.inclusions.filter(i => i).map((inc, i) => <li key={i}>{inc}</li>)}
+                     </ul>
+                 </div>
+                 
+                 <div className="mb-8">
+                     <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Coverage</h2>
+                      {activeQuote.days.map(day => (
+                        <div key={day.id} className="mb-2">
+                          <p><strong>{day.name}:</strong> {day.hours} hours of coverage with {day.crew}</p>
+                        </div>
+                      ))}
+                 </div>
+                 
+                 {activeQuote.addOns.length > 0 && (
+                 <div className="mb-8">
+                     <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Optional Add-ons</h2>
+                     <ul className="list-disc list-inside space-y-1">
+                        {activeQuote.addOns.filter(a => a.name).map((addOn, i) => <li key={i}>{addOn.name} {addOn.notes && `(${addOn.notes})`}</li>)}
+                     </ul>
+                 </div>
+                 )}
+                 
+                 <div className="mt-12 pt-8 border-t-2">
+                     <h2 className="text-2xl font-semibold mb-4 text-right">Investment Summary</h2>
+                     <table className="w-full text-right">
+                        <tbody>
+                            <tr><td className="py-1">Base Package:</td><td className="font-semibold">${activeQuote.pricing.basePrice}</td></tr>
+                            <tr><td className="py-1">Add-ons Total:</td><td className="font-semibold">${activeQuote.pricing.addOnsTotal}</td></tr>
+                            <tr><td className="py-1">Tax:</td><td className="font-semibold">${activeQuote.pricing.tax}</td></tr>
+                            <tr><td className="py-1">Discount:</td><td className="font-semibold">-${activeQuote.pricing.discount}</td></tr>
+                            <tr className="border-t-2 text-xl"><td className="pt-4 font-bold">Grand Total:</td><td className="pt-4 font-bold">${activeQuote.pricing.grandTotal}</td></tr>
+                        </tbody>
+                     </table>
+                 </div>
+            </div>
+
+          </div>
+        </main>
+      </div>
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
+    </>
+  );
 };
 
 export default App;
