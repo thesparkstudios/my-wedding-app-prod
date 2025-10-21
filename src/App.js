@@ -53,8 +53,7 @@ if (firebaseConfig && firebaseConfig.apiKey) {
     }
 } else {
     if (!firebaseInitializationError) {
-        firebaseInitializationError = "Firebase configuration was not provided by the environment. Using app in offline mode.";
-        console.warn(firebaseInitializationError);
+        firebaseInitializationError = "Firebase configuration not provided. Quote generation is disabled.";
     }
 }
 
@@ -183,23 +182,10 @@ const App = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const quoteId = params.get('quoteId');
-        const offlineQuoteData = params.get('quoteData');
 
-        if (offlineQuoteData) {
-            try {
-                const decodedData = decodeURIComponent(atob(offlineQuoteData));
-                const parsedData = JSON.parse(decodedData);
-                setQuoteData(parsedData);
-                setIsAuthenticated(true);
-                setCurrentView('viewQuote');
-            } catch (e) {
-                console.error("Failed to parse offline quote data", e);
-                setError("The provided quote link is invalid.");
-                setCurrentView('configurator');
-            }
-        } else if (quoteId) {
+        if (quoteId) {
             if (firebaseInitializationError) {
-                setError("Cannot load quote in offline mode.");
+                setError("Cannot load quote. Firebase is not configured.");
                 setCurrentView('configurator');
                 return;
             }
@@ -280,30 +266,17 @@ const App = () => {
 
     // --- Firestore Logic ---
     const handleGenerateQuote = async () => {
-        if (!clientDetails.name) { setError("Client Name is required."); return; }
-        setIsLoading(true); setError('');
-
-        const quotePayload = { client: clientDetails, packages, generatedAt: new Date().toISOString(), authorId: userId || 'offline' };
-
-        // --- Offline Mode Logic ---
+        // Check for Firebase configuration first
         if (firebaseInitializationError) {
-            try {
-                const jsonString = JSON.stringify(quotePayload);
-                const encodedData = btoa(encodeURIComponent(jsonString));
-                const url = `${window.location.origin}${window.location.pathname}?quoteData=${encodedData}`;
-                window.open(url, '_blank');
-                showMessage("Offline quote link generated and opened!");
-            } catch (err) {
-                console.error("Error generating offline quote link:", err);
-                setError(`Failed to generate offline link: ${err.message}`);
-            } finally {
-                setIsLoading(false);
-            }
+            setError(firebaseInitializationError);
             return;
         }
+        if (!clientDetails.name) { setError("Client Name is required."); return; }
+        if (!userId) { setError("Authentication not ready. Please wait."); return; }
 
-        // --- Online (Firebase) Mode Logic ---
-        if (!userId) { setError("Authentication not ready."); setIsLoading(false); return; }
+        setIsLoading(true); setError('');
+        const quotePayload = { client: clientDetails, packages, generatedAt: new Date().toISOString(), authorId: userId };
+
         try {
             const publicQuotesCollectionRef = collection(db, `artifacts/${appId}/public/data/weddingQuotes`);
             const docRef = await addDoc(publicQuotesCollectionRef, quotePayload);
