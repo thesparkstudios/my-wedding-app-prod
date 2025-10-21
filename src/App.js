@@ -49,7 +49,6 @@ const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height
 const AppHeader = ({ title, subtitle }) => (<div className="text-center mb-10"><h1 className="text-4xl md:text-5xl font-bold text-amber-400">{title}</h1><p className="text-lg text-gray-400 mt-2">{subtitle}</p></div>);
 
 const allInclusions = [
-    'Perfect for intimate weddings or couples who want cinematic coverage without all the extras.',
     'Unlimited professionally edited photos',
     'Cinematic Highlight Film (3–5 min)',
     'Full Feature Film (Full Day Edit)',
@@ -95,7 +94,15 @@ const App = () => {
     const [openFaq, setOpenFaq] = useState(null);
     
     // Quote state
-    const [packages, setPackages] = useState(initialPackages);
+    const [packages, setPackages] = useState(() => {
+        try {
+            const savedPackages = localStorage.getItem('sparkStudiosConfigurator');
+            return savedPackages ? JSON.parse(savedPackages) : initialPackages;
+        } catch (error) {
+            console.error("Failed to load packages from local storage:", error);
+            return initialPackages;
+        }
+    });
     const [clientDetails, setClientDetails] = useState({ name: '', email: '' });
     const [quoteData, setQuoteData] = useState(null);
 
@@ -130,6 +137,15 @@ const App = () => {
         }
     }, []);
     
+    // --- Save configuration to local storage ---
+    useEffect(() => {
+        try {
+            localStorage.setItem('sparkStudiosConfigurator', JSON.stringify(packages));
+        } catch (error) {
+            console.error("Failed to save packages to local storage:", error);
+        }
+    }, [packages]);
+
     const showMessage = (msg) => {
         setMessage(msg);
         setTimeout(() => setMessage(''), 3000);
@@ -293,14 +309,14 @@ const App = () => {
             <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-8">
                  <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12">
-                        <h1 className="text-2xl font-bold text-amber-400">The Spark Studios</h1>
+                        <div className="w-32 h-12 bg-gray-800/50 border border-amber-400/20 mx-auto mb-4 flex items-center justify-center rounded-lg"><span className="text-amber-400 font-bold">The Spark Studios</span></div>
                         <h2 className="text-4xl md:text-5xl font-light text-gray-200 mt-2">Your Wedding Proposal</h2>
                         <p className="mt-4 text-gray-400">Prepared for: {quoteData.client.name}</p>
                     </div>
                     <div className={`grid grid-cols-1 lg:grid-cols-${sortedPackages.length} gap-8 items-start`}>
                         {sortedPackages.map((pkg, index) => (
                             <div key={pkg.id} className={`bg-gray-800/50 p-8 rounded-2xl border transition-all duration-300 ${index === middleIndex ? 'border-amber-400 scale-105 shadow-2xl shadow-amber-500/10' : 'border-gray-700'}`}>
-                                {index === middleIndex && sortedPackages.length > 1 && <div className="text-center mb-4"><span className="bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</span></div>}
+                                {index === middleIndex && sortedPackages.length > 1 && <div className="text-center mb-4"><span className="bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full uppercase">Recommended</span></div>}
                                 <h3 className="text-3xl font-bold text-center text-amber-400">{pkg.name}</h3>
                                 <p className="text-5xl font-thin text-center my-6">${Number(pkg.price).toLocaleString()}</p>
                                 
@@ -322,8 +338,8 @@ const App = () => {
                             </div>
                         ))}
                     </div>
-                     <div className="mt-12 pt-10 border-t border-gray-700/50">
-                        <h2 className="text-3xl font-bold text-center text-amber-400 mb-6">Frequently Asked Questions</h2>
+                     <div className="mt-16 pt-10 border-t border-gray-700/50">
+                        <h2 className="text-3xl font-bold text-center text-amber-400 mb-8">Frequently Asked Questions</h2>
                         <div className="max-w-3xl mx-auto space-y-2">
                            {faqData.map((faq, index) => (
                                 <div key={index} className="bg-gray-800/50 rounded-lg border border-gray-700">
@@ -331,7 +347,7 @@ const App = () => {
                                         <span>{faq.q}</span>
                                         <span className={`transform transition-transform ${openFaq === index ? 'rotate-180' : ''}`}>&#9660;</span>
                                     </button>
-                                    {openFaq === index && <div className="p-4 pt-0 text-gray-400"><p>{faq.a}</p></div>}
+                                    {openFaq === index && <div className="p-4 pt-0 text-gray-400 leading-relaxed"><p>{faq.a}</p></div>}
                                 </div>
                            ))}
                         </div>
