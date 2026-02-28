@@ -7,7 +7,7 @@ import {
   Camera, Film, Clock, Award, CheckCircle, Calendar, 
   Zap, Plus, Trash2, Eye, Edit3, Save, 
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
-  Check
+  Check, Lock
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -29,7 +29,7 @@ const db = getFirestore(app);
 const appId = typeof window !== 'undefined' && window.__app_id ? window.__app_id : 'the-spark-studios-quotes';
 
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.1.2"; // Updated version to track fix for unused vars
+const APP_VERSION = "1.2.0"; 
 
 const App = () => {
   const [view, setView] = useState('editor'); // 'editor', 'preview', 'dashboard'
@@ -40,6 +40,10 @@ const App = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  
+  // Security State
+  const [passInput, setPassInput] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   // --- INITIAL PROPOSAL STATE ---
   const initialProposalState = {
@@ -135,7 +139,6 @@ const App = () => {
       if (hash.startsWith('#/quote/')) {
         const id = hash.replace('#/quote/', '');
         setCurrentQuoteId(id);
-        setLoading(true);
         
         if (!user) return; // Wait for auth
 
@@ -155,18 +158,18 @@ const App = () => {
               setIsExpired(false);
             }
             
+            // Clients seeing a quote are automatically "unlocked" to see that specific quote
+            setIsUnlocked(true);
             setView('preview');
           } else {
-            console.error("Quote not found");
             setView('dashboard');
           }
         } catch (err) {
           console.error("Fetch error:", err);
-        } finally {
-          setLoading(false);
         }
       } else if (!hash) {
-        setView('dashboard');
+        // Only reset to dashboard if we aren't in the middle of editing
+        if (view !== 'editor') setView('dashboard');
       }
     };
 
@@ -177,27 +180,44 @@ const App = () => {
 
   // --- FETCH ALL QUOTES FOR DASHBOARD ---
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isUnlocked) return;
     const q = collection(db, 'artifacts', appId, 'public', 'data', 'quotes');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const quotes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSavedQuotes(quotes);
     }, (err) => console.error("Snapshot error:", err));
     return () => unsubscribe();
-  }, [user]);
+  }, [user, isUnlocked]);
 
   // --- HANDLERS ---
   const saveQuote = async () => {
     if (!user) return;
     setIsSaving(true);
+    
+    // Generate an ID if it doesn't exist
     const id = currentQuoteId || proposalData.clientName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
     
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'quotes', id);
-      const dataToSave = { ...proposalData, id, updatedAt: Date.now() };
+      const dataToSave = { 
+        ...proposalData, 
+        id, 
+        updatedAt: Date.now(),
+        // Only set createdAt if it's a new quote
+        createdAt: proposalData.createdAt || Date.now() 
+      };
+      
       await setDoc(docRef, dataToSave);
       setCurrentQuoteId(id);
-      window.location.hash = `#/quote/${id}`;
+      
+      // Update hash without triggering a view switch back to preview immediately
+      // This allows the user to stay in the editor
+      const currentHash = window.location.hash;
+      const newHash = `#/quote/${id}`;
+      if (currentHash !== newHash) {
+        window.history.replaceState(null, null, newHash);
+      }
+      
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 3000);
     } catch (err) {
@@ -270,6 +290,35 @@ const App = () => {
     Camera: <Camera size={20} />
   };
 
+  // Security Gate
+  if (!isUnlocked && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-6 font-sans">
+        <div className="max-w-md w-full bg-white p-12 rounded-[2.5rem] shadow-2xl text-center">
+          <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-8">
+            <Lock size={32} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 tracking-tight">The Spark Studios</h2>
+          <p className="text-gray-400 text-sm mb-8">Internal Quotation Access</p>
+          <input 
+            type="password" 
+            placeholder="Enter Access Key"
+            className="w-full p-4 border border-gray-100 bg-gray-50 rounded-2xl mb-4 text-center outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            value={passInput}
+            onChange={(e) => setPassInput(e.target.value)}
+            onKeyDown={(e) => { if(e.key === 'Enter' && passInput === 'wayssmffss2') setIsUnlocked(true); }}
+          />
+          <button 
+            onClick={() => { if(passInput === 'wayssmffss2') setIsUnlocked(true); }}
+            className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all"
+          >
+            Unlock Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -278,7 +327,10 @@ const App = () => {
     );
   }
 
-  const DashboardView = () => (
+  // To prevent focus loss, renderEditor/Dashboard are simple JSX-returning functions
+  // instead of separate Component types.
+  
+  const renderDashboard = () => (
     <div className="max-w-5xl mx-auto py-12 px-6">
       <div className="flex justify-between items-center mb-12">
         <div>
@@ -356,7 +408,7 @@ const App = () => {
     </div>
   );
 
-  const EditorView = () => (
+  const renderEditor = () => (
     <div className="max-w-5xl mx-auto py-10 px-6 font-sans text-gray-800 pb-40">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b pb-6 gap-4">
         <div className="flex items-center gap-4">
@@ -372,10 +424,10 @@ const App = () => {
           <button 
             onClick={saveQuote}
             disabled={isSaving}
-            className={`flex-1 md:flex-none px-6 py-3 rounded-full flex items-center justify-center gap-2 transition shadow-lg disabled:opacity-50 ${copyFeedback && !currentQuoteId ? 'bg-green-600' : 'bg-black'} text-white hover:bg-gray-800`}
+            className={`flex-1 md:flex-none px-6 py-3 rounded-full flex items-center justify-center gap-2 transition shadow-lg disabled:opacity-50 ${copyFeedback ? 'bg-green-600' : 'bg-black'} text-white hover:bg-gray-800`}
           >
-            {isSaving ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : copyFeedback && !currentQuoteId ? <Check size={18} /> : <Save size={18} />}
-            {isSaving ? "Saving..." : copyFeedback && !currentQuoteId ? "Saved!" : "Save Proposal"}
+            {isSaving ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : copyFeedback ? <Check size={18} /> : <Save size={18} />}
+            {isSaving ? "Saving..." : copyFeedback ? "Saved Successfully!" : "Save Proposal"}
           </button>
           {currentQuoteId && (
             <button 
@@ -490,7 +542,7 @@ const App = () => {
                       onChange={(e) => updateDay(day.id, 'highlight', e.target.checked)}
                       className="w-4 h-4 rounded text-indigo-600 shadow-sm"
                     />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Intensive Coverage (8am-1am)</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Full Day Coverage</span>
                   </label>
                 </div>
               </div>
@@ -584,7 +636,7 @@ const App = () => {
     </div>
   );
 
-  const PreviewView = () => {
+  const renderPreview = () => {
     if (isExpired && view === 'preview') {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6 font-sans">
@@ -676,7 +728,7 @@ const App = () => {
                   {day.highlight && (
                     <div className="mt-8 pt-8 border-t border-gray-50">
                       <p className="text-[11px] font-sans font-bold text-gray-300 uppercase tracking-[0.2em] leading-relaxed">
-                        Continuous Cinematography<br/>+ Elite Production Unit
+                        Full Day Coverage<br/>+ Elite Production Unit
                       </p>
                     </div>
                   )}
@@ -800,7 +852,7 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 selection:bg-indigo-100">
-      {view === 'dashboard' ? <DashboardView /> : view === 'editor' ? <EditorView /> : <PreviewView />}
+      {view === 'dashboard' ? renderDashboard() : view === 'editor' ? renderEditor() : renderPreview()}
     </div>
   );
 };
