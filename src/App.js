@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from 'firebase/firestore';
 import { 
   Camera, Film, Clock, Award, CheckCircle, Calendar, 
-  Zap, HardDrive, Plus, Trash2, Eye, Edit3, Save, 
-  ChevronRight, ChevronLeft, Image as ImageIcon, Settings,
-  Copy, Share2, AlertCircle, List, ArrowLeft, ExternalLink,
+  Zap, Plus, Trash2, Eye, Edit3, Save, 
+  Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
   Check
 } from 'lucide-react';
 
@@ -30,7 +29,7 @@ const db = getFirestore(app);
 const appId = typeof window !== 'undefined' && window.__app_id ? window.__app_id : 'the-spark-studios-quotes';
 
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.1.1"; // Updated version to track fix
+const APP_VERSION = "1.1.2"; // Updated version to track fix for unused vars
 
 const App = () => {
   const [view, setView] = useState('editor'); // 'editor', 'preview', 'dashboard'
