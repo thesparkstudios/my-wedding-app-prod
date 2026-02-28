@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, increment, deleteDoc } from 'firebase/firestore';
 import { 
   Camera, Film, Clock, Award, CheckCircle, Calendar, 
   Zap, Plus, Trash2, Eye, Edit3, Save, 
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
-  Check, Lock, XCircle, MessageCircle
+  Check, Lock, XCircle, MessageCircle, Trash
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -29,7 +29,7 @@ const db = getFirestore(app);
 const finalAppId = typeof __app_id !== 'undefined' ? __app_id : 'the-spark-studios-quotes';
 const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.3.3"; 
+const APP_VERSION = "1.3.4"; 
 
 const App = () => {
   const [view, setView] = useState('editor'); 
@@ -43,6 +43,7 @@ const App = () => {
   const [fbError, setFbError] = useState(null);
   const [passInput, setPassInput] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const initialProposalState = {
     clientName: "Ayushi & Family",
@@ -227,6 +228,16 @@ const App = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      setFbError(null);
+      await deleteDoc(doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', id));
+      setDeletingId(null);
+    } catch (err) {
+      setFbError("Delete failed. Check permissions.");
+    }
+  };
+
   const updateField = (field, value) => setProposalData(prev => ({ ...prev, [field]: value }));
   const updateDay = (id, field, value) => setProposalData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, [field]: value } : d) }));
   const addDay = () => setProposalData(prev => ({ ...prev, days: [...prev.days, { id: Date.now(), label: "New Day", date: "Date", desc: "Service Details", icon: "Clock", highlight: false }] }));
@@ -293,8 +304,19 @@ const App = () => {
                       </div>
                     </div>
                     <div className="flex gap-3 w-full lg:w-auto border-t lg:border-t-0 pt-6 lg:pt-0">
-                      <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('editor'); }} className="flex-1 lg:flex-none py-4 px-8 bg-slate-50 rounded-2xl hover:bg-slate-100 transition text-slate-900 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest">Edit</button>
-                      <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 lg:flex-none py-4 px-8 bg-slate-950 rounded-2xl hover:bg-slate-800 transition text-white flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
+                      {deletingId === quote.id ? (
+                        <div className="flex gap-2 items-center bg-rose-50 p-2 px-3 rounded-2xl border border-rose-100 animate-in fade-in slide-in-from-right-4 duration-300">
+                          <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest ml-2">Delete?</span>
+                          <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition shadow-sm"><Check size={16} /></button>
+                          <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl border border-slate-100 hover:text-slate-900 transition shadow-sm"><XCircle size={16} /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('editor'); }} className="flex-1 lg:flex-none py-4 px-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition text-slate-900 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest">Edit</button>
+                          <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 lg:flex-none py-4 px-6 bg-slate-950 rounded-2xl hover:bg-slate-800 transition text-white flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
+                          <button onClick={() => setDeletingId(quote.id)} className="flex-none p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 hover:border-rose-100 transition shadow-sm group"><Trash2 size={18} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" /></button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -331,7 +353,7 @@ const App = () => {
               <div className="flex justify-between items-center mb-10 px-4"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">02. Event Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-slate-800 transition shadow-md"><Plus size={14} /> Add Segment</button></div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {proposalData.days.map((day) => (
-                  <div key={day.id} className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 ${day.highlight ? 'border-indigo-100 bg-indigo-50/20' : 'border-slate-100 bg-white'}`}>
+                  <div key={day.id} className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 ${day.highlight ? 'border-indigo-100 bg-indigo-50/30' : 'border-slate-100 bg-white'}`}>
                     <div className="flex justify-between items-center mb-6"><select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-100 p-2.5 rounded-xl text-[10px] border-none outline-none font-bold text-slate-700 uppercase tracking-widest">{Object.keys(IconMap).map(icon => <option key={icon} value={icon}>{icon}</option>)}</select><button onClick={() => removeDay(day.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-full transition"><Trash2 size={18} /></button></div>
                     <div className="space-y-4 font-sans">
                       <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none text-slate-900 text-lg py-1" />
@@ -438,7 +460,7 @@ const App = () => {
                       {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3.5 rounded-full text-[10px] font-black font-sans tracking-[0.5em] shadow-xl leading-none uppercase">Recommended</div>}
                       <div className="mb-14 md:mb-16">
                         <h3 className="text-3xl md:text-4xl font-light mb-6 tracking-tight text-slate-950 leading-none">{item.name}</h3>
-                        <div className="text-6xl md:text-7xl font-serif mb-10 text-slate-950 tracking-tighter leading-none">{item.price}</div>
+                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter leading-none">{item.price}</div>
                         <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-medium pr-4">{item.description}</p>
                       </div>
                       <div className="flex-grow space-y-7 md:space-y-8 mb-16 border-t border-slate-50 pt-16">
