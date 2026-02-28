@@ -29,7 +29,7 @@ const db = getFirestore(app);
 const finalAppId = typeof __app_id !== 'undefined' ? __app_id : 'the-spark-studios-quotes';
 const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.3.2"; 
+const APP_VERSION = "1.3.3"; 
 
 const App = () => {
   const [view, setView] = useState('editor'); 
@@ -374,7 +374,7 @@ const App = () => {
             <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans"><div className="max-w-md w-full bg-white p-12 md:p-16 rounded-[3rem] shadow-2xl text-center border border-slate-100"><div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><AlertCircle size={40} strokeWidth={1} /></div><h1 className="text-3xl font-light mb-6 text-slate-950 tracking-tight leading-none">Proposal Expired</h1><p className="text-slate-500 mb-10 font-medium leading-relaxed">This curated narrative for <span className="text-slate-950 font-black">{proposalData.clientName}</span> is no longer active.</p><div className="h-[1px] bg-slate-100 w-full mb-10"></div><button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} just expired. We'd like to request a formal extension.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px]">Request Re-Activation <ArrowLeft className="rotate-180" size={16} /></button></div></div>
           ) : (
             <>
-              {/* Client Controls (More Subtle/Modern) */}
+              {/* Client Controls */}
               <div className="fixed top-6 left-6 right-6 z-50 flex justify-between pointer-events-none">
                 <button onClick={() => setView('editor')} className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 p-4 rounded-2xl shadow-xl hover:bg-white transition flex items-center gap-3 px-8 active:scale-95 group"><Edit3 size={16} className="text-slate-400 group-hover:text-slate-900" /><span className="text-[11px] font-sans font-black text-slate-950 uppercase tracking-[0.2em]">Editor</span></button>
                 <button onClick={() => setView('dashboard')} className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 p-4 rounded-2xl shadow-xl hover:bg-white transition flex items-center gap-3 px-8 active:scale-95 group"><List size={16} className="text-slate-400 group-hover:text-slate-900" /><span className="text-[11px] font-sans font-black text-slate-950 uppercase tracking-[0.2em]">Portal</span></button>
@@ -397,20 +397,20 @@ const App = () => {
                 <p className="text-2xl md:text-5xl lg:text-6xl leading-[1.6] text-[#222222] font-light italic px-4">"{proposalData.visionStatement}"</p>
               </section>
 
-              {/* Itinerary (High Legibility Slate Tones) */}
+              {/* Itinerary (High Legibility Slate Tones, wider spacing) */}
               <section className="bg-[#fcfcfb] py-32 md:py-48 px-8 border-y border-slate-100">
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                   <div className="text-center mb-24 md:mb-32">
                     <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight">The Itinerary</h2>
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase">Documenting the Journey</p>
                   </div>
-                  <div className={`grid gap-8 md:gap-14 ${
+                  <div className={`grid gap-8 md:gap-10 ${
                     proposalData.days.length === 1 ? 'md:grid-cols-1 max-w-xl mx-auto' :
                     proposalData.days.length === 2 ? 'md:grid-cols-2 max-w-5xl mx-auto' :
-                    proposalData.days.length === 3 ? 'md:grid-cols-3 max-w-7xl mx-auto' : 'md:grid-cols-4'
+                    proposalData.days.length === 3 ? 'md:grid-cols-3 max-w-full' : 'md:grid-cols-4'
                   }`}>
                     {proposalData.days.map((day) => (
-                      <div key={day.id} className={`relative p-12 md:p-16 bg-white rounded-[3rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''}`}>
+                      <div key={day.id} className={`relative p-8 md:p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''}`}>
                         <div className={`w-16 h-16 flex items-center justify-center rounded-[1.5rem] mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
                         <h4 className="font-black text-[11px] font-sans uppercase tracking-[0.4em] text-[#C5A059] mb-4">{day.label}</h4>
                         <p className="text-[#121212] text-[14px] font-sans font-black mb-4 tracking-widest uppercase">{day.date}</p>
@@ -422,8 +422,8 @@ const App = () => {
                 </div>
               </section>
 
-              {/* Collections (Artistic spacing and pricing) */}
-              <section className="max-w-7xl mx-auto py-40 md:py-64 px-8 leading-normal">
+              {/* Collections (Wider cards for better word flow) */}
+              <section className="max-w-[1440px] mx-auto py-40 md:py-64 px-8 leading-normal">
                 <div className="text-center mb-32 md:mb-48">
                   <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none">The Collections</h2>
                   <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none">
@@ -432,24 +432,24 @@ const App = () => {
                     <div className="h-[1px] w-12 bg-slate-200"></div>
                   </div>
                 </div>
-                <div className={`grid gap-12 md:gap-20 items-stretch justify-center ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : proposalData.packages.filter(p => p.isVisible).length === 2 ? 'md:grid-cols-2 max-w-6xl mx-auto' : 'lg:grid-cols-3'}`}>
+                <div className={`grid gap-8 md:gap-12 items-stretch justify-center ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : proposalData.packages.filter(p => p.isVisible).length === 2 ? 'md:grid-cols-2 max-w-6xl mx-auto' : 'lg:grid-cols-3'}`}>
                   {proposalData.packages.filter(p => p.isVisible).map((item) => (
-                    <div key={item.id} className={`relative flex flex-col p-12 md:p-20 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl' : 'bg-white border-slate-100'}`}>
+                    <div key={item.id} className={`relative flex flex-col p-10 md:p-14 rounded-[3.5rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl' : 'bg-white border-slate-100'}`}>
                       {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3.5 rounded-full text-[10px] font-black font-sans tracking-[0.5em] shadow-xl leading-none uppercase">Recommended</div>}
-                      <div className="mb-14 md:mb-20">
+                      <div className="mb-14 md:mb-16">
                         <h3 className="text-3xl md:text-4xl font-light mb-6 tracking-tight text-slate-950 leading-none">{item.name}</h3>
-                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter leading-none">{item.price}</div>
-                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-medium pr-6">{item.description}</p>
+                        <div className="text-6xl md:text-7xl font-serif mb-10 text-slate-950 tracking-tighter leading-none">{item.price}</div>
+                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-medium pr-4">{item.description}</p>
                       </div>
-                      <div className="flex-grow space-y-8 md:space-y-10 mb-16 border-t border-slate-50 pt-16">
+                      <div className="flex-grow space-y-7 md:space-y-8 mb-16 border-t border-slate-50 pt-16">
                         {item.features.filter(f => f.trim() !== "").map((feature, fIdx) => (
-                          <div key={fIdx} className="flex items-start gap-6 group">
-                            <div className={`mt-1 flex-shrink-0 transition-all duration-300 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300 group-hover:text-slate-950'}`}><CheckCircle size={22} strokeWidth={1.5} /></div>
-                            <span className="text-base md:text-xl text-[#333333] leading-snug font-sans tracking-tight font-medium">{feature}</span>
+                          <div key={fIdx} className="flex items-start gap-5 group">
+                            <div className={`mt-1.5 flex-shrink-0 transition-all duration-300 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300 group-hover:text-slate-950'}`}><CheckCircle size={20} strokeWidth={1.5} /></div>
+                            <span className="text-base md:text-lg text-[#333333] leading-snug font-sans tracking-tight font-medium">{feature}</span>
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => openWhatsApp(`Hi! I'd like to secure our date for the ${item.name} Story.`)} className={`w-full py-8 rounded-[2rem] font-black text-[11px] font-sans tracking-[0.4em] uppercase transition-all shadow-xl active:scale-95 flex items-center justify-center gap-4 ${item.isHighlighted ? 'bg-[#C5A059] text-white hover:bg-slate-950' : 'bg-slate-950 text-white hover:bg-[#C5A059]'}`}>Inquire Selection <MessageCircle size={18} /></button>
+                      <button onClick={() => openWhatsApp(`Hi! I'd like to secure our date for the ${item.name} Story.`)} className={`w-full py-7 rounded-[2rem] font-black text-[11px] font-sans tracking-[0.4em] uppercase transition-all shadow-xl active:scale-95 flex items-center justify-center gap-4 ${item.isHighlighted ? 'bg-[#C5A059] text-white hover:bg-slate-950' : 'bg-slate-950 text-white hover:bg-[#C5A059]'}`}>Inquire Selection <MessageCircle size={18} /></button>
                     </div>
                   ))}
                 </div>
