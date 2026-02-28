@@ -29,7 +29,7 @@ const db = getFirestore(app);
 const appId = typeof window !== 'undefined' && window.__app_id ? window.__app_id : 'the-spark-studios-quotes';
 
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.2.0"; 
+const APP_VERSION = "1.2.1"; // Updated version to track fix for useEffect dependency
 
 const App = () => {
   const [view, setView] = useState('editor'); // 'editor', 'preview', 'dashboard'
@@ -55,7 +55,7 @@ const App = () => {
       { id: 1, label: "Pre-Wedding", date: "April 2026", desc: "Engagement Shoot", icon: "Calendar", highlight: false },
       { id: 2, label: "May 8th", date: "Friday", desc: "4 Hours Coverage", icon: "Clock", highlight: false },
       { id: 3, label: "May 9th", date: "Saturday", desc: "4 Hours Photo + Video", icon: "Film", highlight: false },
-      { id: 4, label: "May 10th", date: "Sunday", desc: "8am — 1am Coverage", icon: "Zap", highlight: true },
+      { id: 4, label: "May 10th", date: "Sunday", desc: "Full Day Coverage", icon: "Zap", highlight: true },
     ],
     packages: [
       {
@@ -176,7 +176,7 @@ const App = () => {
     if (user) checkHash();
     window.addEventListener('hashchange', checkHash);
     return () => window.removeEventListener('hashchange', checkHash);
-  }, [user]);
+  }, [user, view]); // Added view to satisfy dependency check and build
 
   // --- FETCH ALL QUOTES FOR DASHBOARD ---
   useEffect(() => {
