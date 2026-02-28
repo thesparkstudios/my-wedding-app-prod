@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
@@ -28,7 +29,7 @@ const db = getFirestore(app);
 const finalAppId = typeof __app_id !== 'undefined' ? __app_id : 'the-spark-studios-quotes';
 const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.3.0"; 
+const APP_VERSION = "1.3.1"; 
 
 const App = () => {
   const [view, setView] = useState('editor'); 
@@ -165,9 +166,7 @@ const App = () => {
               setIsExpired(true);
             } else {
               setIsExpired(false);
-              // TRACK VIEW: Only if this isn't the editor/dashboard view
-              // and we are logged in as a 'client' (essentially we check isUnlocked state later)
-              // For simplicity, we increment if we are in 'preview' logic
+              // TRACK VIEW: Only if we aren't already logged in as admin
               if (!isUnlocked) {
                 await updateDoc(docRef, { 
                   views: increment(1), 
@@ -175,7 +174,6 @@ const App = () => {
                 });
               }
             }
-            // Clients are unlocked to see their own quote
             if (!isUnlocked && hash.includes('/quote/')) setIsUnlocked(true); 
             setView('preview');
             setFbError(null);
@@ -192,7 +190,8 @@ const App = () => {
     if (user) checkHash();
     window.addEventListener('hashchange', checkHash);
     return () => window.removeEventListener('hashchange', checkHash);
-  }, [user, finalAppId, isUnlocked, view]); 
+    // Removed finalAppId from dependency array as it is an outer scope constant
+  }, [user, isUnlocked, view]); 
 
   useEffect(() => {
     if (!user || !isUnlocked || view === 'preview') return;
@@ -205,6 +204,7 @@ const App = () => {
       setFbError("Lead tracking disabled. Update Firestore rules.");
     });
     return () => unsubscribe();
+    // Removed finalAppId from dependency array
   }, [user, isUnlocked, view]);
 
   const saveQuote = async () => {
@@ -244,10 +244,17 @@ const App = () => {
   const updatePackage = (id, field, value) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === id ? { ...p, [field]: value } : p) }));
   const updatePackageFeatures = (pId, featuresArray) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === pId ? { ...p, features: featuresArray } : p) }));
   const createNew = () => { setCurrentQuoteId(null); setProposalData({ ...initialProposalState, createdAt: Date.now() }); window.location.hash = ''; setView('editor'); };
+  
   const copyLink = () => {
     const url = `${window.location.origin}${window.location.pathname}#/quote/${currentQuoteId}`;
-    const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
-    setCopyFeedback(true); setTimeout(() => setCopyFeedback(false), 2000);
+    const el = document.createElement('textarea'); 
+    el.value = url; 
+    document.body.appendChild(el); 
+    el.select(); 
+    document.execCommand('copy'); 
+    document.body.removeChild(el);
+    setCopyFeedback(true); 
+    setTimeout(() => setCopyFeedback(false), 2000);
   };
 
   const IconMap = { Calendar: <Calendar size={20} />, Clock: <Clock size={20} />, Film: <Film size={20} />, Zap: <Zap size={20} />, Camera: <Camera size={20} /> };
@@ -312,6 +319,7 @@ const App = () => {
               })
             )}
           </div>
+          <footer className="mt-20 text-center"><p className="text-[10px] text-gray-400 uppercase tracking-widest font-sans">Build Version {APP_VERSION}</p></footer>
         </div>
       )}
 
@@ -324,6 +332,19 @@ const App = () => {
               {currentQuoteId && <button onClick={() => setView('preview')} className="flex-1 md:flex-none bg-indigo-600 text-white px-6 py-3 rounded-full flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg font-bold active:scale-95"><Eye size={18} /> Preview</button>}
             </div>
           </div>
+
+          {currentQuoteId && (
+            <div className={`mb-10 p-4 rounded-xl flex items-center justify-between transition-all duration-500 ${copyFeedback ? 'bg-green-50 border border-green-100' : 'bg-indigo-50 border border-indigo-100'}`}>
+              <div className={`flex items-center gap-3 text-sm ${copyFeedback ? 'text-green-700' : 'text-indigo-700'}`}>
+                {copyFeedback ? <Check size={16} /> : <Share2 size={16} />}
+                <span className="font-medium">{copyFeedback ? 'Link Copied to Clipboard!' : 'Shareable Link:'} </span>
+                <code className="bg-white/50 px-2 py-1 rounded hidden md:inline-block">{`${window.location.origin}${window.location.pathname}#/quote/${currentQuoteId}`}</code>
+              </div>
+              <button onClick={copyLink} className={`${copyFeedback ? 'text-green-600' : 'text-indigo-600'} hover:opacity-70 text-xs font-bold flex items-center gap-1 uppercase tracking-tighter`}>
+                {copyFeedback ? 'Copied' : <><Copy size={14} /> Copy Link</>}
+              </button>
+            </div>
+          )}
 
           <div className="space-y-10">
             <section className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
@@ -373,6 +394,7 @@ const App = () => {
               </div>
             </section>
           </div>
+          <footer className="mt-20 text-center opacity-30"><p className="text-[10px] uppercase tracking-widest font-sans">Build Version {APP_VERSION}</p></footer>
         </div>
       )}
 
@@ -382,13 +404,11 @@ const App = () => {
             <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6 font-sans"><div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-xl text-center border border-gray-200"><div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-8"><AlertCircle size={32} /></div><h1 className="text-2xl font-bold mb-4 text-gray-950 tracking-tight">Proposal Expired</h1><p className="text-gray-700 mb-8 font-medium italic">This curated proposal for <span className="font-bold text-gray-950">{proposalData.clientName}</span> has completed its 30-day window. Please contact us for a refreshed quotation.</p><div className="h-[1px] bg-gray-100 w-full mb-8"></div><p className="text-sm text-gray-700 mb-8 font-bold uppercase tracking-[0.3em]">The Spark Studios</p><button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} just expired, but we are still interested. Can we get a quick update?`)} className="w-full bg-black text-white py-5 rounded-[1.5rem] font-bold hover:opacity-90 transition shadow-lg active:scale-95 flex items-center justify-center gap-2">Request Extension <ArrowLeft className="rotate-180" size={16} /></button></div></div>
           ) : (
             <>
-              {/* Floating Menu Controls (Darker Text for High Contrast) */}
               <div className="fixed top-4 left-4 right-4 z-50 flex justify-between pointer-events-none">
                 <button onClick={() => setView('editor')} className="pointer-events-auto bg-white/98 backdrop-blur-md border border-gray-300 p-3.5 rounded-full shadow-2xl hover:bg-white transition flex items-center gap-2 px-6 active:scale-95"><Edit3 size={16} className="text-indigo-700" /><span className="text-sm font-sans font-extrabold text-gray-900 uppercase tracking-widest">Edit</span></button>
                 <button onClick={() => setView('dashboard')} className="pointer-events-auto bg-white/98 backdrop-blur-md border border-gray-300 p-3.5 rounded-full shadow-2xl hover:bg-white transition flex items-center gap-2 px-6 active:scale-95"><List size={16} className="text-gray-900" /><span className="text-sm font-sans font-extrabold text-gray-900 uppercase tracking-widest">Portal</span></button>
               </div>
 
-              {/* Hero (Max Visual Impact) */}
               <div className="relative h-[70vh] md:h-[80vh] flex items-center justify-center overflow-hidden bg-black">
                 <div className="absolute inset-0 opacity-65"><img src={proposalData.heroImage} className="w-full h-full object-cover transform hover:scale-105 transition duration-[20s] ease-out" alt="Hero" /></div>
                 <div className="relative z-10 text-center text-white px-6">
@@ -399,13 +419,11 @@ const App = () => {
                 <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce opacity-60"><div className="w-[1px] h-16 bg-white"></div></div>
               </div>
 
-              {/* High Contrast Narrative Section */}
               <section className="max-w-4xl mx-auto py-32 md:py-48 px-6 text-center">
                 <h2 className="text-[12px] tracking-[0.5em] uppercase text-[#96794a] font-sans font-black mb-12">The Creative Heart</h2>
                 <p className="text-2xl md:text-5xl leading-[1.65] text-gray-900 font-light italic px-4">"{proposalData.visionStatement}"</p>
               </section>
 
-              {/* Itinerary Grid (Darker text for readability) */}
               <section className="bg-[#fcfcfb] py-24 md:py-36 px-6 border-y border-gray-200">
                 <div className="max-w-6xl mx-auto">
                   <div className={`grid gap-8 md:gap-12 ${
@@ -426,7 +444,6 @@ const App = () => {
                 </div>
               </section>
 
-              {/* Pricing Cards (High Contrast Adjustments) */}
               <section className="max-w-7xl mx-auto py-32 md:py-48 px-6">
                 <div className="text-center mb-24 md:mb-36">
                   <h2 className="text-5xl md:text-8xl font-light mb-10 text-gray-950 tracking-tight leading-none">The Collections</h2>
@@ -459,7 +476,6 @@ const App = () => {
                 </div>
               </section>
 
-              {/* High Contrast Footer Info */}
               <section className="bg-gray-950 text-white py-32 md:py-56 px-6">
                 <div className="max-w-6xl mx-auto">
                   <div className="grid md:grid-cols-2 gap-24 md:gap-40 items-center">
