@@ -8,7 +8,8 @@ import {
   Camera, Film, Clock, Award, CheckCircle, Calendar, 
   Zap, Plus, Trash2, Eye, Edit3, Save, 
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
-  Check, Lock, XCircle, MessageCircle, Trash, Star, Quote
+  Check, Lock, XCircle, MessageCircle, Trash, Star, Quote,
+  Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -29,7 +30,7 @@ const db = getFirestore(app);
 const finalAppId = typeof __app_id !== 'undefined' ? __app_id : 'the-spark-studios-quotes';
 const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.3.6"; 
+const APP_VERSION = "1.3.7"; 
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
 
 const App = () => {
@@ -51,6 +52,7 @@ const App = () => {
     clientName: "Ayushi & Family",
     visionStatement: "Three days of celebration, tradition, and joy. From the intimate moments of the engagement to the 17-hour marathon of May 10th, we are here to ensure that your legacy is preserved with the same energy it was lived with.",
     heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
+    loomUrl: "", // Space for Loom video
     createdAt: Date.now(),
     views: 0,
     lastViewedAt: null,
@@ -112,6 +114,9 @@ const App = () => {
     reviews: [
       { id: 1, author: "Priya & Raj", text: "The team at Spark Studios didn't just take photos; they became part of the family for those 3 days. Their energy during the 17-hour marathon on our wedding day was unbelievable." },
       { id: 2, author: "Sameer K.", text: "Choosing the Legacy collection was the best decision we made. The teaser film was ready by the time we reached our honeymoon destination. Pure magic." }
+    ],
+    workLinks: [
+      { id: 1, title: "South Asian Cinematic Highlight", url: "https://vimeo.com/your-video" }
     ]
   };
 
@@ -247,13 +252,17 @@ const App = () => {
   const updateDay = (id, field, value) => setProposalData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, [field]: value } : d) }));
   const addDay = () => setProposalData(prev => ({ ...prev, days: [...prev.days, { id: Date.now(), label: "New Day", date: "Date", desc: "Service Details", icon: "Clock", highlight: false }] }));
   const removeDay = (id) => setProposalData(prev => ({ ...prev, days: prev.days.filter(d => d.id !== id) }));
+  
   const updatePackage = (id, field, value) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === id ? { ...p, [field]: value } : p) }));
   const updatePackageFeatures = (pId, featuresArray) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === pId ? { ...p, features: featuresArray } : p) }));
   
-  // Review Handlers
   const updateReview = (id, field, value) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.map(r => r.id === id ? { ...r, [field]: value } : r) }));
   const addReview = () => setProposalData(prev => ({ ...prev, reviews: [...prev.reviews, { id: Date.now(), author: "New Couple", text: "Write review here..." }] }));
   const removeReview = (id) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.filter(r => r.id !== id) }));
+
+  const updateWorkLink = (id, field, value) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.map(l => l.id === id ? { ...l, [field]: value } : l) }));
+  const addWorkLink = () => setProposalData(prev => ({ ...prev, workLinks: [...prev.workLinks, { id: Date.now(), title: "Gallery/Vimeo Title", url: "" }] }));
+  const removeWorkLink = (id) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.filter(l => l.id !== id) }));
 
   const createNew = () => { setCurrentQuoteId(null); setProposalData({ ...initialProposalState, createdAt: Date.now() }); window.location.hash = ''; setView('editor'); };
   
@@ -273,7 +282,7 @@ const App = () => {
     );
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white animate-pulse"><div className="text-[10px] uppercase tracking-[0.4em] text-slate-400">The Spark Studios</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white animate-pulse"><div className="text-[10px] uppercase tracking-[0.4em] text-slate-400 font-sans">The Spark Studios</div></div>;
 
   return (
     <div className="min-h-screen bg-[#fdfdfc] selection:bg-slate-200">
@@ -336,49 +345,50 @@ const App = () => {
           </div>
 
           <div className="space-y-12">
-            {/* 01. Client Narrative */}
-            <section className="bg-white p-8 md:p-12 rounded-[3rem] shadow-sm border border-slate-100">
+            {/* 01. Narrative */}
+            <section className="bg-white p-8 md:p-12 rounded-[3rem] shadow-sm border border-slate-100 font-sans">
               <h2 className="text-xs font-black mb-10 flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">01. Client Narrative</h2>
-              <div className="grid md:grid-cols-2 gap-8 font-sans">
-                <div className="flex flex-col gap-3"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Client Title</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all font-bold text-slate-900 text-lg" /></div>
-                <div className="flex flex-col gap-3"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Visual Header URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all text-sm font-medium text-slate-600" /></div>
-                <div className="md:col-span-2 flex flex-col gap-3 mt-4"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50/30 rounded-[2rem] outline-none focus:bg-white focus:border-slate-300 transition-all italic text-slate-700 resize-none font-medium leading-relaxed text-lg" /></div>
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="flex flex-col gap-3 font-sans"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 font-sans">Client Title</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all font-bold text-slate-900 text-lg" /></div>
+                <div className="flex flex-col gap-3 font-sans"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 font-sans">Visual Header URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all text-sm font-medium text-slate-600" /></div>
+                <div className="flex flex-col gap-3 font-sans mt-4"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 font-sans">Loom Video Embed URL (Optional)</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all text-sm font-medium text-slate-600" placeholder="e.g. https://www.loom.com/embed/..." /></div>
+                <div className="md:col-span-2 flex flex-col gap-3 mt-4 font-sans"><label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1 font-sans">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50/30 rounded-[2rem] outline-none focus:bg-white focus:border-slate-300 transition-all italic text-slate-700 resize-none font-medium leading-relaxed text-lg" /></div>
               </div>
             </section>
 
-            {/* 02. Event Itinerary */}
-            <section>
-              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">02. Event Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-slate-800 transition shadow-md"><Plus size={14} /> Add Segment</button></div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
+            {/* 02. Itinerary */}
+            <section className="font-sans">
+              <div className="flex justify-between items-center mb-10 px-4"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">02. Event Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-slate-800 transition shadow-md"><Plus size={14} /> Add Day</button></div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {proposalData.days.map((day) => (
                   <div key={day.id} className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 ${day.highlight ? 'border-indigo-100 bg-indigo-50/20' : 'border-slate-100 bg-white'}`}>
-                    <div className="flex justify-between items-center mb-6 font-sans"><select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-100 p-2.5 rounded-xl text-[10px] border-none outline-none font-bold text-slate-700 uppercase tracking-widest">{Object.keys(IconMap).map(icon => <option key={icon} value={icon}>{icon}</option>)}</select><button onClick={() => removeDay(day.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-full transition"><Trash2 size={18} /></button></div>
+                    <div className="flex justify-between items-center mb-6"><select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-100 p-2.5 rounded-xl text-[10px] border-none outline-none font-bold text-slate-700 uppercase tracking-widest">{Object.keys(IconMap).map(icon => <option key={icon} value={icon}>{icon}</option>)}</select><button onClick={() => removeDay(day.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-full transition"><Trash2 size={18} /></button></div>
                     <div className="space-y-4">
-                      <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none text-slate-900 text-lg py-1" />
-                      <input type="text" value={day.date} onChange={(e) => updateDay(day.id, 'date', e.target.value)} className="w-full text-[11px] text-slate-500 bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none font-bold uppercase tracking-widest" />
-                      <input type="text" value={day.desc} onChange={(e) => updateDay(day.id, 'desc', e.target.value)} className="w-full text-sm text-indigo-700 bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none font-bold mt-2" />
-                      <label className="flex items-center gap-3 mt-6 cursor-pointer select-none px-1"><input type="checkbox" checked={day.highlight} onChange={(e) => updateDay(day.id, 'highlight', e.target.checked)} className="w-5 h-5 rounded border-slate-200 text-slate-950 focus:ring-slate-950" /><span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Full Day Coverage</span></label>
+                      <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none text-slate-900 text-lg py-1 font-sans" />
+                      <input type="text" value={day.date} onChange={(e) => updateDay(day.id, 'date', e.target.value)} className="w-full text-[11px] text-slate-500 bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none font-bold uppercase tracking-widest font-sans" />
+                      <input type="text" value={day.desc} onChange={(e) => updateDay(day.id, 'desc', e.target.value)} className="w-full text-sm text-indigo-700 bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none font-bold mt-2 font-sans" />
+                      <label className="flex items-center gap-3 mt-6 cursor-pointer select-none px-1 font-sans"><input type="checkbox" checked={day.highlight} onChange={(e) => updateDay(day.id, 'highlight', e.target.checked)} className="w-5 h-5 rounded border-slate-200 text-slate-950 focus:ring-slate-950" /><span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Full Day Coverage</span></label>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* 03. Investment Collections */}
-            <section>
+            {/* 03. Investment */}
+            <section className="font-sans">
               <h2 className="text-xs font-black mb-10 px-4 flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">03. Investment Collections</h2>
-              <div className="space-y-8 font-sans">
+              <div className="space-y-8">
                 {proposalData.packages.map((pkg) => (
                   <div key={pkg.id} className={`p-8 md:p-12 rounded-[3.5rem] border-2 transition-all duration-500 ${pkg.isVisible ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50/50 opacity-50 border-dashed border-slate-200'}`}>
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b border-slate-50 pb-8 gap-6 font-sans"><div className="flex items-center gap-5"><input type="checkbox" checked={pkg.isVisible} onChange={(e) => updatePackage(pkg.id, 'isVisible', e.target.checked)} className="w-7 h-7 rounded-lg border-slate-200 text-slate-950 focus:ring-slate-950 cursor-pointer" /><div><h3 className="font-bold text-slate-950 text-2xl tracking-tight">{pkg.name} Story</h3><p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">{pkg.isVisible ? 'Live View Enabled' : 'Currently Hidden'}</p></div></div>{pkg.isVisible && <div className="flex items-center gap-3 bg-slate-950 px-5 py-2.5 rounded-full text-white shadow-lg"><span className="text-[10px] font-bold uppercase tracking-widest">Featured?</span><input type="checkbox" checked={pkg.isHighlighted} onChange={(e) => updatePackage(pkg.id, 'isHighlighted', e.target.checked)} className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer" /></div>}</div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b border-slate-50 pb-8 gap-6"><div className="flex items-center gap-5 font-sans"><input type="checkbox" checked={pkg.isVisible} onChange={(e) => updatePackage(pkg.id, 'isVisible', e.target.checked)} className="w-7 h-7 rounded-lg border-slate-200 text-slate-950 focus:ring-slate-950 cursor-pointer font-sans" /><div><h3 className="font-bold text-slate-950 text-2xl tracking-tight">{pkg.name} Story</h3><p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">Status: {pkg.isVisible ? 'Visible' : 'Hidden'}</p></div></div>{pkg.isVisible && <div className="flex items-center gap-3 bg-slate-950 px-5 py-2.5 rounded-full text-white shadow-lg font-sans"><span className="text-[10px] font-bold uppercase tracking-widest">Featured?</span><input type="checkbox" checked={pkg.isHighlighted} onChange={(e) => updatePackage(pkg.id, 'isHighlighted', e.target.checked)} className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer" /></div>}</div>
                     {pkg.isVisible && (
                       <div className="grid md:grid-cols-2 gap-12">
-                        <div className="space-y-6">
-                          <div className="flex flex-col gap-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Title</label><input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, 'name', e.target.value)} className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl font-bold text-slate-950 text-lg" /></div>
-                          <div className="flex flex-col gap-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Price Point</label><input type="text" value={pkg.price} onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)} className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl font-serif text-3xl text-indigo-700 font-bold" /></div>
-                          <div className="flex flex-col gap-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Summary</label><textarea value={pkg.description} onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm text-slate-700 h-24 italic resize-none font-medium leading-relaxed" /></div>
+                        <div className="space-y-6 font-sans">
+                          <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] font-sans ml-1">Title</label><input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, 'name', e.target.value)} className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl font-bold text-slate-950 text-lg font-sans" /></div>
+                          <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] font-sans ml-1">Price</label><input type="text" value={pkg.price} onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)} className="p-4 border border-slate-100 bg-slate-50/50 rounded-xl font-serif text-3xl text-indigo-700 font-bold font-sans" /></div>
+                          <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] font-sans ml-1">Summary</label><textarea value={pkg.description} onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/50 rounded-2xl text-sm text-slate-700 h-24 italic resize-none font-medium font-sans" /></div>
                         </div>
-                        <div className="flex flex-col gap-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Key Deliverables</label><textarea value={pkg.features.join('\n')} onChange={(e) => updatePackageFeatures(pkg.id, e.target.value.split('\n'))} className="p-6 border border-slate-100 bg-slate-50 rounded-2xl text-sm h-full min-h-[250px] leading-loose text-slate-900 font-medium" /></div>
+                        <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] font-sans ml-1">Key Features</label><textarea value={pkg.features.join('\n')} onChange={(e) => updatePackageFeatures(pkg.id, e.target.value.split('\n'))} className="p-6 border border-slate-100 bg-slate-50 rounded-2xl text-sm h-full min-h-[250px] leading-loose text-slate-900 font-medium font-sans" /></div>
                       </div>
                     )}
                   </div>
@@ -386,16 +396,32 @@ const App = () => {
               </div>
             </section>
 
-            {/* 04. Client Praise (New!) */}
+            {/* 04. Featured Work */}
             <section className="font-sans">
-              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">04. Client Praise (Google Reviews)</h2><button onClick={addReview} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-bold uppercase tracking-widest shadow-md"><Plus size={14} /> Add Review</button></div>
+              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">04. Featured Studio Work</h2><button onClick={addWorkLink} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-bold uppercase tracking-widest shadow-md"><Plus size={14} /> Add Link</button></div>
+              <div className="grid md:grid-cols-2 gap-6 font-sans">
+                {proposalData.workLinks?.map((link) => (
+                  <div key={link.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans">
+                    <button onClick={() => removeWorkLink(link.id)} className="absolute top-6 right-6 text-rose-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash size={16} /></button>
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">Project Title</label><input type="text" value={link.title} onChange={(e) => updateWorkLink(link.id, 'title', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-sans text-slate-900" /></div>
+                      <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">URL (Vimeo/Gallery)</label><input type="text" value={link.url} onChange={(e) => updateWorkLink(link.id, 'url', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-xs outline-none font-sans" /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 05. Reviews */}
+            <section className="font-sans">
+              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">05. Client Praise (Google Reviews)</h2><button onClick={addReview} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-bold uppercase tracking-widest shadow-md"><Plus size={14} /> Add Review</button></div>
               <div className="grid md:grid-cols-2 gap-6 font-sans">
                 {proposalData.reviews?.map((review) => (
                   <div key={review.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans">
                     <button onClick={() => removeReview(review.id)} className="absolute top-6 right-6 text-rose-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash size={16} /></button>
                     <div className="space-y-5">
-                      <div className="flex flex-col gap-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Couple/Author Name</label><input type="text" value={review.author} onChange={(e) => updateReview(review.id, 'author', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all text-slate-900" /></div>
-                      <div className="flex flex-col gap-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Review Text</label><textarea rows="3" value={review.text} onChange={(e) => updateReview(review.id, 'text', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-sm font-medium italic text-slate-600 outline-none resize-none" /></div>
+                      <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">Couple Name</label><input type="text" value={review.author} onChange={(e) => updateReview(review.id, 'author', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-sans text-slate-900" /></div>
+                      <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">Review</label><textarea rows="3" value={review.text} onChange={(e) => updateReview(review.id, 'text', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-sm italic outline-none resize-none font-sans" /></div>
                     </div>
                   </div>
                 ))}
@@ -406,20 +432,20 @@ const App = () => {
       )}
 
       {view === 'preview' && (
-        <div className="min-h-screen font-serif text-[#121212] bg-white relative">
+        <div className="min-h-screen font-serif text-[#121212] bg-white relative selection:bg-[#C5A059]/20">
           {isExpired ? (
             <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans"><div className="max-w-md w-full bg-white p-12 md:p-16 rounded-[3rem] shadow-2xl text-center border border-slate-100"><div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><AlertCircle size={40} strokeWidth={1} /></div><h1 className="text-3xl font-light mb-6 text-slate-950 tracking-tight leading-none">Proposal Expired</h1><p className="text-slate-500 mb-10 font-medium leading-relaxed">This curated narrative for <span className="text-slate-950 font-black">{proposalData.clientName}</span> is no longer active.</p><div className="h-[1px] bg-slate-100 w-full mb-10"></div><button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} just expired. We'd like to request a formal extension.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px]">Request Re-Activation <ArrowLeft className="rotate-180" size={16} /></button></div></div>
           ) : (
             <>
               {isAdmin && (
-                <div className="fixed top-6 left-6 right-6 z-50 flex justify-between pointer-events-none">
+                <div className="fixed top-6 left-6 right-6 z-50 flex justify-between pointer-events-none font-sans">
                   <button onClick={() => setView('editor')} className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 p-4 rounded-2xl shadow-xl hover:bg-white transition flex items-center gap-3 px-8 active:scale-95 group font-sans"><Edit3 size={16} className="text-slate-400 group-hover:text-slate-900" /><span className="text-[11px] font-black text-slate-950 uppercase tracking-[0.2em]">Editor</span></button>
                   <button onClick={() => setView('dashboard')} className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 p-4 rounded-2xl shadow-xl hover:bg-white transition flex items-center gap-3 px-8 active:scale-95 group font-sans"><List size={16} className="text-slate-400 group-hover:text-slate-900" /><span className="text-[11px] font-black text-slate-950 uppercase tracking-[0.2em]">Portal</span></button>
                 </div>
               )}
 
               <div className="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden bg-[#0d0d0d]">
-                <div className="absolute inset-0 opacity-60"><img src={proposalData.heroImage} className="w-full h-full object-cover transform scale-105" alt="Background" /></div>
+                <div className="absolute inset-0 opacity-60"><img src={proposalData.heroImage} className="w-full h-full object-cover transform scale-105" alt="Hero" /></div>
                 <div className="relative z-10 text-center text-white px-8">
                   <img src={LOGO_URL} alt="The Spark Studios" className="mx-auto h-12 md:h-20 mb-10 object-contain drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
                   <h1 className="text-5xl md:text-[8rem] lg:text-[10rem] mb-12 tracking-tighter leading-[0.9] font-light italic">{proposalData.clientName}</h1>
@@ -428,14 +454,36 @@ const App = () => {
                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40"><div className="w-[1px] h-20 bg-white"></div></div>
               </div>
 
+              {/* Vision Section */}
               <section className="max-w-5xl mx-auto py-40 md:py-64 px-8 text-center leading-relaxed">
                 <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-sans font-black mb-16 md:mb-24">The Vision</h2>
                 <p className="text-2xl md:text-5xl lg:text-6xl leading-[1.6] text-[#222222] font-light italic px-4">"{proposalData.visionStatement}"</p>
               </section>
 
+              {/* Loom Placeholder Section */}
+              <section className="max-w-6xl mx-auto pb-40 md:pb-64 px-8">
+                <div className="relative aspect-video bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center overflow-hidden group shadow-inner">
+                  {proposalData.loomUrl ? (
+                    <iframe src={proposalData.loomUrl} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
+                  ) : (
+                    <>
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50 to-white opacity-50"></div>
+                      <div className="relative z-10 p-8">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059] group-hover:scale-110 transition-transform duration-500">
+                          <Play size={32} fill="currentColor" strokeWidth={0} />
+                        </div>
+                        <h4 className="text-2xl font-light mb-4 tracking-tight text-slate-900 italic">A Personal Message from our Founder</h4>
+                        <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase">Cinematic Intro Coming Soon</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+
+              {/* Itinerary */}
               <section className="bg-[#fcfcfb] py-32 md:py-48 px-8 border-y border-slate-100 leading-normal">
                 <div className="max-w-7xl mx-auto">
-                  <div className="text-center mb-24 md:mb-32">
+                  <div className="text-center mb-24 md:mb-32 font-serif">
                     <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950">The Itinerary</h2>
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase">Documenting the Journey</p>
                   </div>
@@ -450,7 +498,7 @@ const App = () => {
                         <h4 className="font-black text-[11px] font-sans uppercase tracking-[0.4em] text-[#C5A059] mb-4">{day.label}</h4>
                         <p className="text-[#121212] text-[14px] font-sans font-black mb-4 tracking-widest uppercase">{day.date}</p>
                         <p className={`text-xl md:text-2xl font-serif italic ${day.highlight ? 'text-slate-900' : 'text-slate-700'} font-medium leading-relaxed`}>{day.desc}</p>
-                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50"><p className="text-[11px] font-sans font-black text-slate-800 uppercase tracking-[0.2em] leading-relaxed">Continuous Cinema Unit<br/>Full Day Marathon Production</p></div>}
+                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-sans"><p className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em] leading-relaxed">Continuous Cinema Unit<br/>Full Day Marathon Production</p></div>}
                       </div>
                     ))}
                   </div>
@@ -458,8 +506,8 @@ const App = () => {
               </section>
 
               {/* Collections */}
-              <section className="max-w-[1440px] mx-auto py-40 md:py-64 px-8 leading-normal">
-                <div className="text-center mb-32 md:mb-48 font-serif">
+              <section className="max-w-[1440px] mx-auto py-40 md:py-64 px-8 leading-normal font-serif">
+                <div className="text-center mb-32 md:mb-48">
                   <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none">The Collections</h2>
                   <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none">
                     <div className="h-[1px] w-12 bg-slate-200"></div>
@@ -490,56 +538,128 @@ const App = () => {
                 </div>
               </section>
 
-              {/* Kind Words (Reviews Section) - NEW! */}
-              {proposalData.reviews && proposalData.reviews.length > 0 && (
-                <section className="bg-[#fafaf9] py-32 md:py-48 px-8 border-y border-slate-100 leading-relaxed">
-                  <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-24 md:mb-32">
-                      <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950">Kind Words</h2>
-                      <div className="flex items-center justify-center gap-2 mb-4">
-                        {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}
-                      </div>
-                      <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase">Trusted by our Spark Couples</p>
+              {/* The Roadmap (The Process) */}
+              <section className="max-w-6xl mx-auto py-32 md:py-48 px-8 font-sans">
+                <div className="text-center mb-24">
+                  <h2 className="text-4xl md:text-6xl font-light mb-8 font-serif tracking-tight text-slate-950">The Process</h2>
+                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">A Sequence of Excellence</p>
+                </div>
+                <div className="grid md:grid-cols-3 gap-12 relative">
+                  {/* Process Lines (Desktop) */}
+                  <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-[1px] bg-slate-100 z-0"></div>
+                  
+                  {[
+                    { step: "01", title: "Vision Call", desc: "A creative session to align on the artistic direction and schedule flow of your events.", icon: <MessageCircle /> },
+                    { step: "02", title: "Confirmation", desc: "A 30% retainer and signed agreement secure your specific block in our studio calendar.", icon: <Award /> },
+                    { step: "03", title: "Final Design", desc: "A final design review 30 days prior to refine timeline specifics and shoot references.", icon: <Map /> }
+                  ].map((item, idx) => (
+                    <div key={idx} className="relative z-10 text-center flex flex-col items-center group">
+                      <div className="w-20 h-20 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500">{item.icon}</div>
+                      <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em]">{item.step}</span>
+                      <h4 className="text-2xl font-serif italic mb-4 text-slate-950 leading-none">{item.title}</h4>
+                      <p className="text-sm leading-relaxed text-slate-500 font-medium px-4">{item.desc}</p>
                     </div>
-                    <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans">
-                      {proposalData.reviews.map((review) => (
-                        <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-sans">
-                          <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors" size={80} strokeWidth={0.5} />
-                          <div className="relative z-10 font-sans">
-                            <p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10">"{review.text}"</p>
-                            <div className="flex items-center gap-4 border-t border-slate-50 pt-8">
-                              <div className="h-1px w-12 bg-[#C5A059]"></div>
-                              <p className="font-sans font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059]">{review.author}</p>
-                            </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Curated Work Links */}
+              {proposalData.workLinks && proposalData.workLinks.length > 0 && (
+                <section className="bg-slate-950 py-32 md:py-48 px-8 font-sans">
+                  <div className="max-w-5xl mx-auto">
+                    <div className="text-center mb-20">
+                      <h2 className="text-3xl md:text-5xl font-serif italic text-white mb-8">Selected Stories</h2>
+                      <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase">Recommended Viewing for your celebration</p>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-6">
+                      {proposalData.workLinks.map((link) => (
+                        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 rounded-[2rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500">
+                          <div>
+                            <h4 className="text-white font-bold text-lg mb-1">{link.title}</h4>
+                            <p className="text-slate-400 text-xs tracking-widest uppercase font-bold">Launch Cinematic Piece</p>
                           </div>
-                        </div>
+                          <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500">
+                            <LinkIcon size={18} />
+                          </div>
+                        </a>
                       ))}
-                    </div>
-                    <div className="mt-24 text-center">
-                      <a href="https://www.google.com/search?q=the+spark+studios+reviews" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 text-[11px] font-sans font-black uppercase tracking-[0.3em] text-slate-400 hover:text-slate-950 transition-colors">
-                        View All Google Reviews <ArrowLeft className="rotate-180" size={14} />
-                      </a>
                     </div>
                   </div>
                 </section>
               )}
 
-              {/* Final Narrative Footer */}
-              <section className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative leading-relaxed">
+              {/* Luxury FAQs */}
+              <section className="max-w-4xl mx-auto py-32 md:py-56 px-8 font-sans">
+                <div className="text-center mb-24 font-sans">
+                  <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950">The Fine Print</h2>
+                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Understanding our Studio Commitment</p>
+                </div>
+                <div className="space-y-12 font-sans">
+                  {[
+                    { q: "The Aerial Perspective", a: "Drones are essential to high-end cinema. We include drone coverage in every collection at no additional cost to ensure your film feels breathtaking from every angle." },
+                    { q: "The Technical Safeguard", a: "Your memories are irreplaceable. Our studio utilizes a triple-safeguard protocol: dual-slot redundant recording on-site, followed by secondary and cloud-based backups immediately post-event." },
+                    { q: "The Delivery Vow", a: "While art takes time, we respect your anticipation. Full deliveries are completed within 3 to 6 months. High-resolution teasers are prioritized to allow you to share your joy as soon as possible." },
+                    { q: "The Cultural Mastery", a: "Specializing in South Asian celebrations, we are fluent in the nuances of Mehndi, Baraat, and Walima traditions, ensuring no moment of cultural significance is overlooked." },
+                    { q: "Booking & Retainer", a: "Due to our exclusive limited schedule, a 30% non-refundable retainer and a formal agreement are required to lock your specific 3-day window. The balance is settled on the event day." }
+                  ].map((faq, idx) => (
+                    <div key={idx} className="group border-b border-slate-100 pb-12 last:border-0 font-sans">
+                      <div className="flex gap-8 items-start font-sans">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-50 text-[#C5A059] flex items-center justify-center shrink-0 font-sans"><HelpCircle size={20} /></div>
+                        <div className="font-sans">
+                          <h4 className="text-xl font-bold text-slate-950 mb-4 font-sans">{faq.q}</h4>
+                          <p className="text-slate-600 leading-relaxed font-medium font-sans">{faq.a}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Reviews */}
+              {proposalData.reviews && proposalData.reviews.length > 0 && (
+                <section className="bg-[#fafaf9] py-32 md:py-48 px-8 border-y border-slate-100 font-sans">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-24 md:mb-32">
+                      <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950">Kind Words</h2>
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}
+                      </div>
+                      <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Trusted by our Spark Couples</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans">
+                      {proposalData.reviews.map((review) => (
+                        <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group">
+                          <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors" size={80} strokeWidth={0.5} />
+                          <div className="relative z-10 font-sans">
+                            <p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10">"{review.text}"</p>
+                            <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-sans">
+                              <div className="h-1px w-12 bg-[#C5A059]"></div>
+                              <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans">{review.author}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Final Footer */}
+              <section className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-                <div className="max-w-6xl mx-auto relative z-10 leading-relaxed">
-                  <div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center leading-relaxed">
-                    <div className="text-left leading-relaxed">
+                <div className="max-w-6xl mx-auto relative z-10 font-sans leading-relaxed">
+                  <div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center font-sans">
+                    <div className="text-left font-sans">
                       <h3 className="text-5xl md:text-8xl mb-12 italic leading-[1] text-white font-light tracking-tighter">Your Legacy<br/>Starts Here.</h3>
                       <p className="text-xl md:text-2xl opacity-80 mb-20 font-light leading-relaxed max-w-md text-slate-100">The overture of your family's shared history. We are honored to preserve every chapter.</p>
-                      <div className="space-y-16 leading-relaxed">
-                        <div className="flex gap-8 leading-relaxed">
+                      <div className="space-y-16">
+                        <div className="flex gap-8">
                           <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
                           <div><h4 className="font-black text-[11px] tracking-[0.4em] font-sans uppercase mb-4 text-[#C5A059]">Duration</h4><p className="text-xl font-sans font-bold text-white tracking-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
                         </div>
-                        <div className="flex gap-8 leading-relaxed">
+                        <div className="flex gap-8">
                           <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50"><Award size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
-                          <div><h4 className="font-black text-[11px] tracking-[0.4em] font-sans uppercase mb-4 text-[#C5A059]">Retainer</h4><p className="text-xl font-sans font-bold text-white tracking-tight">30% non-refundable retainer required to lock exclusive dates.</p></div>
+                          <div><h4 className="font-black text-[11px] tracking-[0.4em] font-sans uppercase mb-4 text-[#C5A059]">Booking Contract</h4><p className="text-xl font-sans font-bold text-white tracking-tight">A signed agreement formalizes all discussed timelines and investment details.</p></div>
                         </div>
                       </div>
                     </div>
@@ -550,7 +670,7 @@ const App = () => {
                       <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for the ${proposalData.clientName} celebration.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] font-sans hover:bg-slate-950 transition-all shadow-2xl shadow-[#C5A059]/40 active:scale-95 flex items-center justify-center gap-4">Connect on WhatsApp <MessageCircle size={20} /></button>
                     </div>
                   </div>
-                  <div className="mt-48 md:mt-64 pt-20 border-t border-white/10 text-center"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-sans font-black">The Spark Studios &copy; 2026 — Fine Art Cinematography</p></div>
+                  <div className="mt-48 md:mt-64 pt-20 border-t border-white/10 text-center"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-sans font-black font-sans leading-relaxed">The Spark Studios &copy; 2026 — Fine Art Cinematography</p></div>
                 </div>
               </section>
             </>
