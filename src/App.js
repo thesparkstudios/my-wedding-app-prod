@@ -116,7 +116,7 @@ const App = () => {
       { id: 2, author: "Sameer K.", text: "Choosing the Legacy collection was the best decision we made. The teaser film was ready by the time we reached our honeymoon destination. Pure magic." }
     ],
     workLinks: [
-      { id: 1, title: "South Asian Cinematic Highlight", url: "https://vimeo.com/your-video" }
+      { id: 1, title: "South Asian Cinematic Highlight / Private Portfolio Gallery", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709" }
     ]
   };
 
