@@ -9,7 +9,8 @@ import {
   Zap, Plus, Trash2, Eye, Edit3, Save, 
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
   Check, Lock, XCircle, MessageCircle, Trash, Star, Quote,
-  Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map
+  Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map,
+  LockKeyhole
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -30,7 +31,7 @@ const db = getFirestore(app);
 const finalAppId = typeof __app_id !== 'undefined' ? __app_id : 'the-spark-studios-quotes';
 const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
-const APP_VERSION = "1.3.8"; 
+const APP_VERSION = "1.3.9"; 
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
 
 const App = () => {
@@ -116,7 +117,8 @@ const App = () => {
       { id: 2, author: "Sameer K.", text: "Choosing the Legacy collection was the best decision we made. The teaser film was ready by the time we reached our honeymoon destination. Pure magic." }
     ],
     workLinks: [
-      { id: 1, title: "South Asian Cinematic Highlight / Private Portfolio Gallery", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709" }
+      { id: 1, title: "Private Cinema Showcase", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Client Archive" },
+      { id: 2, title: "Full Portfolio Gallery", url: "https://thesparkstudios.ca/portfolio/", note: "Locked Galleries Code: SPARK123" }
     ]
   };
 
@@ -261,7 +263,7 @@ const App = () => {
   const removeReview = (id) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.filter(r => r.id !== id) }));
 
   const updateWorkLink = (id, field, value) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.map(l => l.id === id ? { ...l, [field]: value } : l) }));
-  const addWorkLink = () => setProposalData(prev => ({ ...prev, workLinks: [...prev.workLinks, { id: Date.now(), title: "Gallery/Vimeo Title", url: "" }] }));
+  const addWorkLink = () => setProposalData(prev => ({ ...prev, workLinks: [...prev.workLinks, { id: Date.now(), title: "Project Title", url: "", note: "" }] }));
   const removeWorkLink = (id) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.filter(l => l.id !== id) }));
 
   const createNew = () => { setCurrentQuoteId(null); setProposalData({ ...initialProposalState, createdAt: Date.now() }); window.location.hash = ''; setView('editor'); };
@@ -295,8 +297,8 @@ const App = () => {
       {view === 'dashboard' && (
         <div className="max-w-6xl mx-auto py-12 md:py-20 px-6 font-sans">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
-            <div><h1 className="text-3xl md:text-5xl font-light text-slate-950 tracking-tight mb-4">Proposals</h1><p className="text-slate-500 font-medium tracking-wide uppercase text-[11px]">Lead Intelligence Dashboard</p></div>
-            <button onClick={createNew} className="bg-slate-950 text-white px-10 py-5 rounded-full flex items-center justify-center gap-3 hover:bg-slate-800 transition shadow-xl font-bold uppercase tracking-widest text-[11px] active:scale-95"><Plus size={16} /> New Entry</button>
+            <div><h1 className="text-3xl md:text-5xl font-light text-slate-950 tracking-tight mb-4 font-sans">Proposals</h1><p className="text-slate-500 font-medium tracking-wide uppercase text-[11px] font-sans">Lead Intelligence Dashboard</p></div>
+            <button onClick={createNew} className="bg-slate-950 text-white px-10 py-5 rounded-full flex items-center justify-center gap-3 hover:bg-slate-800 transition shadow-xl font-bold uppercase tracking-widest text-[11px] active:scale-95 font-sans"><Plus size={16} /> New Entry</button>
           </div>
           <div className="grid gap-6">
             {savedQuotes.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map(quote => (
@@ -304,23 +306,23 @@ const App = () => {
                 <div className="flex items-start md:items-center gap-6 flex-1 min-w-0">
                   <div className="p-4 rounded-[1.5rem] bg-slate-50 text-slate-900 shadow-sm"><Calendar size={24} strokeWidth={1.5} /></div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 text-xl tracking-tight mb-2 truncate">{quote.clientName}</h3>
+                    <h3 className="font-bold text-slate-900 text-xl tracking-tight mb-2 truncate font-sans">{quote.clientName}</h3>
                     <div className="flex flex-wrap items-center gap-4">
-                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-bold uppercase tracking-tighter"><Eye size={14} className="text-slate-300" /> {quote.views || 0} Opens</div>
-                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-bold uppercase tracking-tighter"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgo(quote.lastViewedAt)}</div>
+                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-bold uppercase tracking-tighter font-sans"><Eye size={14} className="text-slate-300" /> {quote.views || 0} Opens</div>
+                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-bold uppercase tracking-tighter font-sans"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgo(quote.lastViewedAt)}</div>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto">
                   {deletingId === quote.id ? (
-                    <div className="flex gap-2 items-center bg-rose-50 p-2 px-3 rounded-2xl border border-rose-100 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="flex gap-2 items-center bg-rose-50 p-2 px-3 rounded-2xl border border-rose-100 animate-in fade-in slide-in-from-right-4 duration-300 font-sans">
                       <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition"><Check size={16} /></button>
-                      <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl border border-slate-100"><XCircle size={16} /></button>
+                      <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl border border-slate-100 font-sans"><XCircle size={16} /></button>
                     </div>
                   ) : (
                     <>
-                      <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('editor'); }} className="flex-1 py-4 px-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition text-slate-900 font-bold text-[11px] uppercase tracking-widest">Edit</button>
-                      <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 py-4 px-6 bg-slate-950 rounded-2xl hover:bg-slate-800 transition text-white font-bold text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
+                      <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('editor'); }} className="flex-1 py-4 px-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition text-slate-900 font-bold text-[11px] uppercase tracking-widest font-sans">Edit</button>
+                      <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 py-4 px-6 bg-slate-950 rounded-2xl hover:bg-slate-800 transition text-white font-bold text-[11px] uppercase tracking-widest shadow-lg active:scale-95 font-sans">Preview</button>
                       <button onClick={() => setDeletingId(quote.id)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 transition"><Trash2 size={18} strokeWidth={1.5} /></button>
                     </>
                   )}
@@ -361,7 +363,7 @@ const App = () => {
                 {proposalData.days.map((day) => (
                   <div key={day.id} className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 ${day.highlight ? 'border-indigo-100 bg-indigo-50/20' : 'border-slate-100 bg-white'}`}>
                     <div className="flex justify-between items-center mb-6 font-sans"><select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-100 p-2.5 rounded-xl text-[10px] border-none outline-none font-bold text-slate-700 uppercase tracking-widest font-sans">{Object.keys(IconMap).map(icon => <option key={icon} value={icon}>{icon}</option>)}</select><button onClick={() => removeDay(day.id)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-full transition font-sans"><Trash2 size={18} /></button></div>
-                    <div className="space-y-4 font-sans">
+                    <div className="space-y-4">
                       <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none text-slate-900 text-lg py-1 font-sans" />
                       <input type="text" value={day.date} onChange={(e) => updateDay(day.id, 'date', e.target.value)} className="w-full text-[11px] text-slate-500 bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none font-bold uppercase tracking-widest font-sans" />
                       <input type="text" value={day.desc} onChange={(e) => updateDay(day.id, 'desc', e.target.value)} className="w-full text-sm text-indigo-700 bg-transparent border-b border-dashed border-slate-200 focus:border-slate-400 outline-none font-bold mt-2 font-sans" />
@@ -402,6 +404,7 @@ const App = () => {
                     <div className="space-y-4 font-sans">
                       <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">Project Title</label><input type="text" value={link.title} onChange={(e) => updateWorkLink(link.id, 'title', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-sans text-slate-900" /></div>
                       <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">URL (Vimeo/Gallery)</label><input type="text" value={link.url} onChange={(e) => updateWorkLink(link.id, 'url', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-xs outline-none font-sans" /></div>
+                      <div className="flex flex-col gap-2 font-sans"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-sans">Access Note / Password</label><input type="text" value={link.note} onChange={(e) => updateWorkLink(link.id, 'note', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-xs outline-none font-sans" placeholder="e.g. Code: SPARK123" /></div>
                     </div>
                   </div>
                 ))}
@@ -456,19 +459,19 @@ const App = () => {
               </section>
 
               {/* Loom Section */}
-              <section className="max-w-6xl mx-auto pb-40 md:pb-64 px-8">
-                <div className="relative aspect-video bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center overflow-hidden group shadow-inner">
+              <section className="max-w-6xl mx-auto pb-40 md:pb-64 px-8 font-sans">
+                <div className="relative aspect-video bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center overflow-hidden group shadow-inner font-sans">
                   {proposalData.loomUrl ? (
-                    <iframe title="Loom Personal Message" src={proposalData.loomUrl} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
+                    <iframe title="Loom Personal Message" src={proposalData.loomUrl} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full font-sans"></iframe>
                   ) : (
                     <>
-                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50 to-white opacity-50"></div>
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50 to-white opacity-50 font-sans"></div>
                       <div className="relative z-10 p-8 font-sans">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059] group-hover:scale-110 transition-transform duration-500">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059] group-hover:scale-110 transition-transform duration-500 font-sans">
                           <Play size={32} fill="currentColor" strokeWidth={0} />
                         </div>
                         <h4 className="text-2xl font-light mb-4 tracking-tight text-slate-900 italic font-serif">A Personal Message from our Founder</h4>
-                        <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase">Cinematic Intro Coming Soon</p>
+                        <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans">Cinematic Intro Coming Soon</p>
                       </div>
                     </>
                   )}
@@ -564,14 +567,21 @@ const App = () => {
                       <h2 className="text-3xl md:text-5xl font-serif italic text-white mb-8 font-serif">Selected Stories</h2>
                       <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase font-sans">Recommended Viewing for your celebration</p>
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-6 font-sans">
+                    <div className="grid sm:grid-cols-2 gap-8 font-sans">
                       {proposalData.workLinks.map((link) => (
-                        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 rounded-[2rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500 font-sans">
-                          <div className="font-sans">
-                            <h4 className="text-white font-bold text-lg mb-1 font-sans">{link.title}</h4>
-                            <p className="text-slate-400 text-xs tracking-widest uppercase font-bold font-sans">Launch Cinematic Piece</p>
+                        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500 font-sans">
+                          <div className="font-sans pr-4">
+                            <h4 className="text-white font-bold text-lg mb-2 font-sans tracking-tight">{link.title}</h4>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black font-sans leading-none">Launch Gallery</span>
+                                {link.note && (
+                                    <div className="flex items-center gap-1.5 bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none">
+                                        <LockKeyhole size={10} /> {link.note}
+                                    </div>
+                                )}
+                            </div>
                           </div>
-                          <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500 font-sans">
+                          <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500 font-sans shrink-0">
                             <LinkIcon size={18} />
                           </div>
                         </a>
@@ -621,7 +631,7 @@ const App = () => {
                     </div>
                     <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans">
                       {proposalData.reviews.map((review) => (
-                        <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-sans">
+                        <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group">
                           <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-sans" size={80} strokeWidth={0.5} />
                           <div className="relative z-10 font-sans leading-relaxed">
                             <p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10 font-serif">"{review.text}"</p>
@@ -638,7 +648,7 @@ const App = () => {
               )}
 
               {/* Final Footer */}
-              <section className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative font-sans">
+              <section className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 <div className="max-w-6xl mx-auto relative z-10 font-sans leading-relaxed">
                   <div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center font-sans">
