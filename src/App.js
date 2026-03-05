@@ -34,7 +34,8 @@ const EXPIRY_DAYS = 30;
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
 
 const App = () => {
-  const [view, setView] = useState('editor'); 
+  // Start on Dashboard so the portal is the first thing you see after password
+  const [view, setView] = useState('dashboard'); 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savedQuotes, setSavedQuotes] = useState([]);
@@ -104,7 +105,7 @@ const App = () => {
         isHighlighted: false,
         features: [
           "Everything in Signature",
-          "Expanded Production Coverage (Additional Team)",
+          "Expanded Production Team",
           "Upgraded Premium Faux Leather Case",
           "Custom-Designed USB Presentation Case",
           "Guaranteed 6-Week Digital Delivery",
@@ -114,8 +115,8 @@ const App = () => {
       }
     ],
     reviews: [
-      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
-      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun." }
+      { id: 1, author: "Zeewarad", text: "Choose them for our event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
+      { id: 2, author: "Hanni", text: "Incredibly talented, professional, and made the entire experience so smooth and fun. Truly brought our dream wedding to life." }
     ],
     workLinks: [
       { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
@@ -131,7 +132,7 @@ const App = () => {
       document.title = `The Spark Studios | Proposal for ${proposalData.clientName}`;
     } else if (view === 'editor') {
       document.title = `Editor | ${proposalData.clientName || 'New Entry'}`;
-    } else if (view === 'dashboard') {
+    } else {
       document.title = "Spark Portal | Dashboard";
     }
   }, [view, proposalData.clientName]);
@@ -157,50 +158,6 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Hash-based Routing Fix
-  useEffect(() => {
-    const checkHash = async () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#/quote/')) {
-        const id = hash.replace('#/quote/', '');
-        
-        // Prevent hash from taking admin out of editor mode if they are editing
-        if (view === 'editor' && currentQuoteId === id) return;
-
-        setCurrentQuoteId(id);
-        if (!user) return; 
-        try {
-          const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', id);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setProposalData(data);
-            const created = data.createdAt || Date.now();
-            if (Date.now() > created + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)) {
-              setIsExpired(true);
-            } else {
-              setIsExpired(false);
-              if (!isAdmin) {
-                await updateDoc(docRef, { views: increment(1), lastViewedAt: Date.now() });
-              }
-            }
-            if (!isUnlocked && hash.includes('/quote/')) setIsUnlocked(true); 
-            setView('preview');
-          } else {
-            setView('dashboard');
-          }
-        } catch (err) {
-          setFbError("Load error.");
-        }
-      } else if (!hash && isUnlocked) {
-        if (view !== 'editor') setView('dashboard');
-      }
-    };
-    if (user) checkHash();
-    window.addEventListener('hashchange', checkHash);
-    return () => window.removeEventListener('hashchange', checkHash);
-  }, [user, isUnlocked, view, isAdmin, currentQuoteId]); 
-
   // Sync quotes list
   useEffect(() => {
     if (!user || !isUnlocked || view === 'preview') return;
@@ -209,10 +166,40 @@ const App = () => {
       const quotes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSavedQuotes(quotes);
     }, (err) => {
-      setFbError("Sync denied.");
+      setFbError("Database sync failed.");
     });
     return () => unsubscribe();
   }, [user, isUnlocked, view]);
+
+  // Routing Logic
+  useEffect(() => {
+    const checkHash = async () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/quote/')) {
+        const id = hash.replace('#/quote/', '');
+        if (view === 'editor' && currentQuoteId === id) return; // Keep admin in editor
+
+        setCurrentQuoteId(id);
+        if (!user) return; 
+        try {
+          const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setProposalData(docSnap.data());
+            const created = docSnap.data().createdAt || Date.now();
+            setIsExpired(Date.now() > created + (EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+            if (!isAdmin) {
+              await updateDoc(docRef, { views: increment(1), lastViewedAt: Date.now() });
+            }
+            setView('preview');
+          }
+        } catch (err) { console.error(err); }
+      }
+    };
+    if (user) checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, [user, view, isAdmin, currentQuoteId]);
 
   const saveQuote = async () => {
     if (!auth.currentUser) return;
@@ -229,8 +216,6 @@ const App = () => {
       };
       await setDoc(docRef, dataToSave);
       setCurrentQuoteId(id);
-      const newHash = `#/quote/${id}`;
-      if (window.location.hash !== newHash) window.history.replaceState(null, null, newHash);
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 3000);
     } catch (err) {
@@ -249,6 +234,20 @@ const App = () => {
     }
   };
 
+  const getTimeAgoString = (timestamp) => {
+    if (!timestamp) return "Never";
+    const diff = Math.floor((Date.now() - timestamp) / 1000);
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return `${Math.floor(diff/86400)}d ago`;
+  };
+
+  const openWhatsApp = (msg) => {
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
+  };
+
   const updateField = (field, value) => setProposalData(prev => ({ ...prev, [field]: value }));
   const updateDay = (id, field, value) => setProposalData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, [field]: value } : d) }));
   const addDay = () => setProposalData(prev => ({ ...prev, days: [...prev.days, { id: Date.now(), label: "New Day", date: "Date", desc: "Service Details", icon: "Clock", highlight: false }] }));
@@ -256,10 +255,10 @@ const App = () => {
   const updatePackage = (id, field, value) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === id ? { ...p, [field]: value } : p) }));
   const updatePackageFeatures = (pId, featuresArray) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === pId ? { ...p, features: featuresArray } : p) }));
   const updateReview = (id, field, value) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.map(r => r.id === id ? { ...r, [field]: value } : r) }));
-  const addReview = () => setProposalData(prev => ({ ...prev, reviews: [...prev.reviews, { id: Date.now(), author: "New Couple", text: "Write review here..." }] }));
+  const addReview = () => setProposalData(prev => ({ ...prev, reviews: [...prev.reviews, { id: Date.now(), author: "New Couple", text: "Review..." }] }));
   const removeReview = (id) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.filter(r => r.id !== id) }));
   const updateWorkLink = (id, field, value) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.map(l => l.id === id ? { ...l, [field]: value } : l) }));
-  const addWorkLink = () => setProposalData(prev => ({ ...prev, workLinks: [...prev.workLinks, { id: Date.now(), title: "Project Title", url: "", note: "" }] }));
+  const addWorkLink = () => setProposalData(prev => ({ ...prev, workLinks: [...prev.workLinks, { id: Date.now(), title: "Project", url: "", note: "" }] }));
   const removeWorkLink = (id) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.filter(l => l.id !== id) }));
   const createNew = () => { setCurrentQuoteId(null); setProposalData({ ...initialProposalState, createdAt: Date.now() }); window.location.hash = ''; setView('editor'); };
 
@@ -296,9 +295,15 @@ const App = () => {
         h1, h2, h3, h4 { font-family: 'Cormorant Garamond', serif !important; }
       `}</style>
 
+      {fbError && view !== 'preview' && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4 font-sans font-black">
+          <div className="bg-rose-600 text-white p-4 rounded-2xl shadow-xl flex items-center gap-3"><XCircle size={18} /><p className="text-xs font-bold uppercase tracking-wider">{fbError}</p></div>
+        </div>
+      )}
+
       {view === 'dashboard' && (
         <div className="max-w-6xl mx-auto py-12 md:py-20 px-6 font-sans">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8 font-sans">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
             <div>
               <h1 className="text-4xl md:text-6xl font-light text-slate-950 tracking-tight mb-4 leading-none font-serif">Proposals</h1>
               <p className="text-slate-500 font-black tracking-widest uppercase text-[11px] font-sans">Lead Intelligence Dashboard</p>
@@ -308,13 +313,13 @@ const App = () => {
           <div className="grid gap-6">
             {savedQuotes.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map(quote => (
               <div key={quote.id} className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
-                <div className="flex items-start md:items-center gap-6 flex-1 min-w-0 font-sans font-black">
+                <div className="flex items-start md:items-center gap-6 flex-1 min-w-0 font-sans">
                   <div className="p-4 rounded-[1.5rem] bg-slate-50 text-slate-900 shadow-sm font-sans"><Calendar size={24} strokeWidth={1.5} /></div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-slate-900 text-2xl tracking-tight mb-2 truncate font-serif leading-none">{quote.clientName}</h3>
                     <div className="flex flex-wrap items-center gap-4 mt-2">
-                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-widest font-sans"><Eye size={14} className="text-slate-300" /> {quote.views || 0} Opens</div>
-                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-widest font-sans"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgo(quote.lastViewedAt)}</div>
+                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-widest font-sans"><Eye size={14} className="text-slate-300 font-sans" /> {quote.views || 0} Opens</div>
+                      <div className="flex items-center gap-2 text-slate-400 text-[11px] font-black uppercase tracking-widest font-sans"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgoString(quote.lastViewedAt)}</div>
                     </div>
                   </div>
                 </div>
@@ -323,7 +328,7 @@ const App = () => {
                     onClick={() => { 
                       setProposalData(quote); 
                       setCurrentQuoteId(quote.id); 
-                      window.location.hash = ''; // Essential Fix
+                      window.location.hash = ''; // Clear hash for editing
                       setView('editor'); 
                     }} 
                     className="flex-1 py-4 px-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition text-slate-900 font-black text-[11px] uppercase tracking-widest font-sans"
@@ -381,7 +386,7 @@ const App = () => {
               <div className="grid md:grid-cols-2 gap-8 font-sans">
                 <div className="flex flex-col gap-3 font-sans"><label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Client Title</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all font-bold text-slate-900 text-lg font-sans" /></div>
                 <div className="flex flex-col gap-3 font-sans"><label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Visual Header URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all text-sm font-medium text-slate-600 font-sans" /></div>
-                <div className="flex flex-col gap-3 font-sans mt-4"><label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Loom Video URL</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all text-sm font-medium text-slate-600 font-sans" placeholder="https://www.loom.com/embed/..." /></div>
+                <div className="flex flex-col gap-3 font-sans mt-4 font-sans"><label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Loom Video URL</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-5 border border-slate-100 bg-slate-50/30 rounded-2xl outline-none focus:bg-white focus:border-slate-300 transition-all text-sm font-medium text-slate-600 font-sans" /></div>
                 <div className="md:col-span-2 flex flex-col gap-3 mt-4 font-sans"><label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50/30 rounded-[2rem] outline-none focus:bg-white focus:border-slate-300 transition-all italic text-slate-700 resize-none font-medium leading-relaxed text-lg font-sans" /></div>
               </div>
             </section>
@@ -461,7 +466,7 @@ const App = () => {
       {view === 'preview' && (
         <div className="min-h-screen font-serif text-[#121212] bg-white relative selection:bg-[#C5A059]/20 font-sans leading-relaxed">
           {isExpired ? (
-            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans font-black"><div className="max-w-md w-full bg-white p-12 md:p-16 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-sans font-black"><div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10 font-sans font-black"><AlertCircle size={40} strokeWidth={1} className="font-sans font-black" /></div><h1 className="text-3xl font-light mb-6 text-slate-950 tracking-tight leading-none font-serif font-black">Proposal Expired</h1><p className="text-slate-500 mb-10 font-medium leading-relaxed font-sans font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black">{proposalData.clientName}</span> has expired.</p><button onClick={() => openWhatsAppMsg(`Hi! Our proposal for ${proposalData.clientName} just expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] font-sans font-black">Contact Studio <ArrowLeft className="rotate-180" size={16} /></button></div></div>
+            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans font-black"><div className="max-w-md w-full bg-white p-12 md:p-16 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-sans font-black"><div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10 font-sans font-black"><AlertCircle size={40} strokeWidth={1} className="font-sans font-black" /></div><h1 className="text-3xl font-light mb-6 text-slate-950 tracking-tight leading-none font-serif font-black">Proposal Expired</h1><p className="text-slate-500 mb-10 font-medium leading-relaxed font-sans font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black">{proposalData.clientName}</span> has expired.</p><button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} just expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] font-sans font-black">Contact Studio <ArrowLeft className="rotate-180" size={16} /></button></div></div>
           ) : (
             <div className="font-sans">
               <div className="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden bg-[#0d0d0d]">
@@ -484,9 +489,9 @@ const App = () => {
                   {proposalData.loomUrl ? (
                     <iframe title="Loom" src={proposalData.loomUrl} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
                   ) : (
-                    <div className="font-sans p-10">
+                    <div className="font-sans p-10 text-center">
                       <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059]"><Play size={32} fill="currentColor" strokeWidth={0} /></div>
-                      <h4 className="text-2xl font-light mb-4 tracking-tight text-slate-900 italic font-serif leading-none">Personal Message</h4>
+                      <h4 className="text-2xl font-light mb-4 tracking-tight text-slate-900 italic font-serif">Personal Message</h4>
                       <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans">Cinematic Intro Coming Soon</p>
                     </div>
                   )}
@@ -494,7 +499,7 @@ const App = () => {
               </section>
 
               <section className="bg-[#fcfcfb] py-32 md:py-48 px-8 border-y border-slate-100 leading-normal font-sans">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-7xl mx-auto font-sans">
                   <div className="text-center mb-24 md:mb-32 font-serif font-black">
                     <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950 leading-none">The Itinerary</h2>
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Documenting the Journey</p>
@@ -506,7 +511,7 @@ const App = () => {
                         <h4 className="font-black text-[11px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-sans font-black">{day.label}</h4>
                         <p className="text-[#121212] text-[14px] font-black mb-4 tracking-widest uppercase font-sans font-black">{day.date}</p>
                         <p className={`text-xl md:text-2xl font-serif italic font-medium leading-relaxed`}>{day.desc}</p>
-                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black font-sans text-[11px] text-slate-800 tracking-widest uppercase uppercase">Continuous Production Unit</div>}
+                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black font-sans text-[11px] text-slate-800 tracking-widest uppercase">Continuous Production Unit</div>}
                       </div>
                     ))}
                   </div>
@@ -515,7 +520,7 @@ const App = () => {
 
               <section className="max-w-[1440px] mx-auto py-40 md:py-64 px-8 leading-normal font-serif">
                 <div className="text-center mb-32 md:mb-48 font-serif font-black">
-                  <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none">The Collections</h2>
+                  <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none font-serif">The Collections</h2>
                   <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans"><div className="h-[1px] w-12 bg-slate-200"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200"></div></div>
                 </div>
                 <div className={`grid gap-8 md:gap-12 items-stretch justify-center font-sans ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : 'lg:grid-cols-3'}`}>
@@ -528,7 +533,7 @@ const App = () => {
                           <div key={fIdx} className="flex items-start gap-5 font-sans font-black"><div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300'}`}><CheckCircle size={20} strokeWidth={1.5} /></div><span className="text-base md:text-lg text-[#333333] leading-snug tracking-tight font-medium font-sans font-black">{feature}</span></div>
                         ))}
                       </div>
-                      <button onClick={() => openWhatsAppMsg(`Hi! I'd like to book the ${item.name} Story.`)} className="w-full py-7 rounded-[2rem] font-black text-[11px] tracking-[0.4em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] font-sans font-black">Inquire Selection <MessageCircle size={18} /></button>
+                      <button onClick={() => openWhatsApp(`Hi! I'd like to book the ${item.name} Story.`)} className="w-full py-7 rounded-[2rem] font-black text-[11px] tracking-[0.4em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] font-sans font-black">Inquire Selection <MessageCircle size={18} /></button>
                     </div>
                   ))}
                 </div>
@@ -546,7 +551,7 @@ const App = () => {
                     { step: "02", title: "Confirmation", desc: "A retainer and signed agreement secure your dates.", icon: <Award /> },
                     { step: "03", title: "Final Design", desc: "Timelines and reference reviews prior to shooting.", icon: <Map /> }
                   ].map((item, idx) => (
-                    <div key={idx} className="relative z-10 text-center flex flex-col items-center group">
+                    <div key={idx} className="relative z-10 text-center flex flex-col items-center group font-sans">
                       <div className="w-20 h-20 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500">{item.icon}</div>
                       <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em] font-sans">{item.step}</span>
                       <h4 className="text-2xl font-serif italic mb-4 text-slate-950 leading-none">{item.title}</h4>
@@ -559,49 +564,81 @@ const App = () => {
               {/* Curated Work */}
               {proposalData.workLinks && proposalData.workLinks.length > 0 && (
                 <section className="bg-slate-950 py-32 md:py-48 px-8 font-sans">
-                  <div className="max-w-5xl mx-auto"><div className="text-center mb-20 font-serif font-black"><h2 className="text-3xl md:text-5xl italic text-white mb-8 leading-none">Selected Stories</h2><p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase">Recommended Viewing</p></div><div className="grid sm:grid-cols-2 gap-8 font-sans">
-                    {proposalData.workLinks.map((link) => (
-                      <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500 font-sans font-black"><div className="font-black"><h4 className="text-white font-bold text-lg mb-2 font-serif tracking-tight leading-none">{link.title}</h4><div className="flex items-center gap-2 mb-1"><span className="text-slate-400 text-[10px] tracking-widest uppercase font-black leading-none">Launch Gallery</span>{link.note && <div className="flex items-center gap-1.5 bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none font-sans font-black"><LockKeyhole size={10} /> {link.note}</div>}</div></div><div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500 shrink-0"><LinkIcon size={18} /></div></a>
-                    ))}
-                  </div></div>
+                  <div className="max-w-5xl mx-auto">
+                    <div className="text-center mb-20 font-serif font-black">
+                      <h2 className="text-3xl md:text-5xl italic text-white mb-8 leading-none">Selected Stories</h2>
+                      <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase">Recommended Viewing</p>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-8 font-sans">
+                      {proposalData.workLinks.map((link) => (
+                        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500 font-sans font-black">
+                          <div className="font-black">
+                            <h4 className="text-white font-bold text-lg mb-2 font-serif tracking-tight leading-none">{link.title}</h4>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black leading-none">Launch Gallery</span>
+                                {link.note && <div className="flex items-center gap-1.5 bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none font-sans font-black"><LockKeyhole size={10} /> {link.note}</div>}
+                            </div>
+                          </div>
+                          <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500 shrink-0"><LinkIcon size={18} /></div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                 </section>
               )}
 
               {/* Luxury FAQs */}
               <section className="max-w-4xl mx-auto py-32 md:py-56 px-8 font-sans">
-                <div className="text-center mb-24 font-serif font-sans"><h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none">The Fine Print</h2><p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Studio Commitment</p></div><div className="space-y-12 font-sans font-black">
+                <div className="text-center mb-24 font-serif font-sans"><h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none">The Fine Print</h2><p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Studio Commitment</p></div>
+                <div className="space-y-12 font-sans font-black">
                   {[
                     { q: "The Aerial Perspective", a: "Drones are essential to high-end cinema. We include drone coverage in every collection at no additional cost." },
                     { q: "The Technical Safeguard", a: "Your memories are irreplaceable. Our studio utilizes a triple-safeguard protocol with redundant cloud backups." },
                     { q: "Delivery Timeline", a: "Full deliveries are completed within 3 to 6 months. High-resolution teasers are prioritized." },
                     { q: "Booking & Retainer", a: "A 30% retainer and signed agreement are required to lock your window in our exclusive studio calendar." }
                   ].map((faq, idx) => (
-                    <div key={idx} className="group border-b border-slate-100 pb-12 last:border-0 font-sans"><div className="flex gap-8 items-start font-sans"><div className="w-12 h-12 rounded-2xl bg-slate-50 text-[#C5A059] flex items-center justify-center shrink-0 font-sans font-black"><HelpCircle size={20} /></div><div className="font-sans font-sans"><h4 className="text-xl font-bold text-slate-950 mb-4 font-serif leading-none">{faq.q}</h4><p className="text-slate-600 leading-relaxed font-medium font-sans">{faq.a}</p></div></div></div>
+                    <div key={idx} className="group border-b border-slate-100 pb-12 last:border-0 font-sans"><div className="flex gap-8 items-start font-sans font-sans"><div className="w-12 h-12 rounded-2xl bg-slate-50 text-[#C5A059] flex items-center justify-center shrink-0 font-sans font-black font-sans"><HelpCircle size={20} /></div><div className="font-sans font-sans font-sans"><h4 className="text-xl font-bold text-slate-950 mb-4 font-serif leading-none">{faq.q}</h4><p className="text-slate-600 leading-relaxed font-medium font-sans font-sans">{faq.a}</p></div></div></div>
                   ))}
                 </div>
               </section>
 
               {/* Kind Words */}
-              <section className="bg-[#fafaf9] py-32 md:py-48 px-8 border-y border-slate-100 font-sans">
-                <div className="max-w-6xl mx-auto"><div className="text-center mb-24 md:mb-32 font-serif font-black"><h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none">Kind Words</h2><div className="flex items-center justify-center gap-2 mb-4">{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}</div><p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Trusted by Spark Couples</p></div><div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans font-black">
+              <section className="bg-[#fafaf9] py-32 md:py-48 px-8 border-y border-slate-100 font-sans font-sans">
+                <div className="max-w-6xl mx-auto"><div className="text-center mb-24 md:mb-32 font-serif font-black font-sans"><h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none font-serif">Kind Words</h2><div className="flex items-center justify-center gap-2 mb-4">{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}</div><p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Trusted by Spark Couples</p></div><div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans font-black">
                   {proposalData.reviews.map((review) => (
-                    <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-sans font-black leading-relaxed"><Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-sans font-black" size={80} strokeWidth={0.5} /><div className="relative z-10 font-sans leading-relaxed"><p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10 font-serif">"{review.text}"</p><div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black"><div className="h-1px w-12 bg-[#C5A059]"></div><p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none">{review.author}</p></div></div></div>
+                    <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-sans font-black leading-relaxed font-sans font-sans"><Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-sans font-black" size={80} strokeWidth={0.5} /><div className="relative z-10 font-sans font-sans font-sans leading-relaxed"><p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10 font-serif font-serif">"{review.text}"</p><div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-sans"><div className="h-1px w-12 bg-[#C5A059]"></div><p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none font-sans font-sans">{review.author}</p></div></div></div>
                   ))}
                 </div></div>
               </section>
 
               {/* Footer */}
-              <section className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative font-sans">
-                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-sans font-black"></div>
-                <div className="max-w-6xl mx-auto relative z-10 font-sans leading-relaxed font-sans font-black"><div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center font-sans"><div className="text-left leading-relaxed">
-                  <h3 className="text-5xl md:text-8xl mb-12 italic leading-none text-white font-serif">Your Legacy<br/>Starts Here.</h3>
-                  <div className="space-y-16 font-sans">
-                    <div className="flex gap-8 font-sans"><div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div><div className="font-sans font-black font-sans"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059]">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div></div>
-                    <div className="flex gap-8 font-sans font-black"><div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black font-sans font-black"><Award size={28} className="text-[#C5A059]" strokeWidth={1} /></div><div className="font-sans font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059]">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all investment details.</p></div></div>
-                  </div></div>
-                  <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] md:rounded-[6rem] shadow-2xl relative group overflow-hidden font-sans font-black"><div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125"></div><h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none">Vision Call</h4><p className="text-slate-600 mb-16 text-lg md:text-2xl leading-relaxed font-medium pr-4 font-sans font-black">To ensure our artistic styles align, we invite you to a brief introductory session.</p><button onClick={() => openWhatsAppMsg(`Hi Spark Studios! We'd like to schedule a Vision Call for the ${proposalData.clientName} celebration.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-sans font-black">Connect on WhatsApp <MessageCircle size={20} /></button></div>
-                </div><div className="mt-48 md:mt-64 pt-20 border-t border-white/10 text-center font-black font-sans"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-sans font-black font-sans font-black">The Spark Studios &copy; 2026</p></div></div>
-              </section>
+              <footer className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative font-sans font-sans">
+                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-sans font-black font-sans"></div>
+                <div className="max-w-6xl mx-auto relative z-10 font-sans leading-relaxed font-sans font-black font-sans font-sans">
+                  <div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center font-sans font-sans">
+                    <div className="text-left leading-relaxed">
+                      <h3 className="text-5xl md:text-8xl mb-12 italic leading-none text-white font-serif">Your Legacy<br/>Starts Here.</h3>
+                      <div className="space-y-16 font-sans">
+                        <div className="flex gap-8 font-sans font-sans">
+                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black font-sans font-sans font-sans"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
+                          <div className="font-sans font-black font-sans font-sans"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-sans">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
+                        </div>
+                        <div className="flex gap-8 font-sans font-black font-sans font-sans">
+                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black font-sans font-black font-sans"><Award size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
+                          <div className="font-sans font-black font-black font-black font-sans"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-sans font-sans font-sans">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all investment details.</p></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] md:rounded-[6rem] shadow-2xl relative group overflow-hidden font-sans font-black font-sans font-sans">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125 font-sans"></div>
+                      <h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none">Vision Call</h4>
+                      <p className="text-slate-600 mb-16 text-lg md:text-2xl leading-relaxed font-medium pr-4 font-sans font-black">To ensure our artistic styles align, we invite you to a brief introductory session.</p>
+                      <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for the ${proposalData.clientName} celebration.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-sans font-black">Connect on WhatsApp <MessageCircle size={20} /></button>
+                    </div>
+                  </div>
+                  <div className="mt-48 md:mt-64 pt-20 border-t border-white/10 text-center font-black font-sans font-sans font-sans font-sans"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-sans font-black font-sans font-black font-sans font-sans">The Spark Studios &copy; 2026</p></div>
+                </div>
+              </footer>
             </div>
           )}
         </div>
