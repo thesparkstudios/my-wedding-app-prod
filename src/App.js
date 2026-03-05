@@ -117,8 +117,8 @@ const App = () => {
       }
     ],
     reviews: [
-      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Waqar is truly a gem of a person and so easy to work with!" },
-      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and truly brought our dream wedding to life." }
+      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
+      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." }
     ],
     workLinks: [
       { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
@@ -138,6 +138,12 @@ const App = () => {
       document.title = "Spark Portal | Dashboard";
     }
   }, [view, proposalData.clientName]);
+
+  // WhatsApp logic
+  const openWhatsApp = (msg) => {
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
+  };
 
   // Auth
   useEffect(() => {
@@ -266,7 +272,7 @@ const App = () => {
 
   if (!isUnlocked && !loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d] px-6 font-sans">
+      <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d] px-6 font-sans leading-relaxed">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Montserrat:wght@100..900&display=swap');
           .font-serif { font-family: 'Cormorant Garamond', serif !important; }
@@ -313,7 +319,7 @@ const App = () => {
           <div className="grid gap-6">
             {savedQuotes.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map(quote => (
               <div key={quote.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-6 font-black font-sans">
                   <div className="p-4 rounded-3xl bg-slate-50 text-slate-900 shadow-sm"><Calendar size={28} strokeWidth={1.2} /></div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-2xl tracking-tight font-serif leading-none">{quote.clientName}</h3>
@@ -323,16 +329,16 @@ const App = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3 w-full lg:w-auto font-black">
+                <div className="flex gap-3 w-full lg:w-auto font-black font-black font-sans">
                   <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
                   <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
                   {deletingId === quote.id ? (
-                    <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in">
-                      <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl"><Check size={16} /></button>
-                      <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl"><XCircle size={16} /></button>
+                    <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in font-black">
+                      <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl font-black"><Check size={16} /></button>
+                      <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl font-black"><XCircle size={16} /></button>
                     </div>
                   ) : (
-                    <button onClick={() => setDeletingId(quote.id)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 transition"><Trash2 size={18} /></button>
+                    <button onClick={() => setDeletingId(quote.id)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 transition font-sans"><Trash2 size={18} strokeWidth={1.5} /></button>
                   )}
                 </div>
               </div>
@@ -343,15 +349,15 @@ const App = () => {
 
       {view === 'editor' && (
         <div className="max-w-6xl mx-auto py-16 px-6 text-slate-900 pb-48 leading-relaxed font-sans">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-slate-100 pb-10 gap-8 font-sans">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-slate-100 pb-10 gap-8">
             <div className="flex items-center gap-6">
               <button onClick={() => { setView('dashboard'); window.location.hash = ''; }} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-slate-900 transition"><ArrowLeft size={20} /></button>
               <div><h1 className="text-4xl font-light text-slate-950 font-serif leading-none mb-1">Editor</h1><p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">{currentQuoteId ? `Editing: ${currentQuoteId}` : 'New Narrative'}</p></div>
             </div>
-            <div className="flex gap-4 w-full md:w-auto font-black">
+            <div className="flex gap-4 w-full md:w-auto font-black font-black font-sans">
               <button onClick={saveQuote} disabled={isSaving} className={`flex-1 px-10 py-5 rounded-full flex items-center justify-center gap-3 transition shadow-xl ${copyFeedback ? 'bg-emerald-600' : 'bg-slate-950'} text-white uppercase tracking-widest text-[11px]`}>
                 {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : copyFeedback ? <Check size={16} /> : <Save size={16} />}
-                {isSaving ? "Updating Link..." : currentQuoteId ? "Update Proposal" : "Save Proposal"}
+                {isSaving ? "Syncing..." : currentQuoteId ? "Update Link" : "Save Proposal"}
               </button>
               {currentQuoteId && <button onClick={() => { window.location.hash = `#/quote/${currentQuoteId}`; setView('preview'); }} className="flex-1 px-10 py-5 bg-indigo-600 text-white rounded-full flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] shadow-xl"><Eye size={16} /> Preview Mode</button>}
             </div>
@@ -360,46 +366,46 @@ const App = () => {
           <div className="space-y-12">
             <section className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
               <h2 className="text-xs font-black mb-10 flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em]">01. Client Narrative</h2>
-              <div className="grid md:grid-cols-2 gap-8 font-sans">
-                <div className="flex flex-col gap-2"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">Client Title</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl outline-none focus:bg-white font-bold text-slate-900 text-lg" /></div>
-                <div className="flex flex-col gap-2"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">Visual Header URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs" /></div>
-                <div className="flex flex-col gap-2 mt-4"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">Loom Embed URL</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs" /></div>
-                <div className="md:col-span-2 flex flex-col gap-2 mt-4 font-sans"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans font-black">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50 rounded-2xl italic resize-none font-medium text-slate-700" /></div>
+              <div className="grid md:grid-cols-2 gap-8 font-sans font-sans">
+                <div className="flex flex-col gap-2"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">Client Name</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl outline-none focus:bg-white font-bold text-slate-900 text-lg" /></div>
+                <div className="flex flex-col gap-2"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">Hero Image URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs" /></div>
+                <div className="flex flex-col gap-2 mt-4 font-sans"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans">Loom Embed URL</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs" /></div>
+                <div className="md:col-span-2 flex flex-col gap-2 mt-4 font-sans font-sans"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-sans font-black">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50 rounded-2xl italic resize-none font-medium text-slate-700" /></div>
               </div>
             </section>
 
-            <section className="font-sans">
-              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">02. Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest"><Plus size={14} /> Add Day</button></div>
+            <section className="font-sans font-sans">
+              <div className="flex justify-between items-center mb-10 px-4 font-sans font-sans"><h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">02. Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest"><Plus size={14} /> Add Day</button></div>
               <div className="grid md:grid-cols-4 gap-6 font-sans">
                 {proposalData.days.map((day) => (
                   <div key={day.id} className="p-8 bg-white rounded-[2.5rem] border border-slate-100 relative group font-sans">
                     <button onClick={() => removeDay(day.id)} className="absolute top-6 right-6 text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
-                    <div className="space-y-4 font-sans">
-                      <select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-50 p-2 rounded-xl text-[10px] font-black uppercase outline-none mb-2 font-sans">{Object.keys(IconMap).map(k => <option key={k} value={k}>{k}</option>)}</select>
-                      <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold border-b border-dashed text-slate-900 font-serif text-lg outline-none" />
-                      <input type="text" value={day.date} onChange={(e) => updateDay(day.id, 'date', e.target.value)} className="w-full text-[11px] uppercase tracking-widest font-black text-slate-500 outline-none" />
-                      <input type="text" value={day.desc} onChange={(e) => updateDay(day.id, 'desc', e.target.value)} className="w-full text-sm text-indigo-700 font-bold outline-none" />
-                      <label className="flex items-center gap-2 mt-4 cursor-pointer"><input type="checkbox" checked={day.highlight} onChange={(e) => updateDay(day.id, 'highlight', e.target.checked)} className="rounded text-slate-950" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Day Team</span></label>
+                    <div className="space-y-4">
+                      <select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-50 p-2 rounded-xl text-[10px] font-black uppercase outline-none mb-2 font-sans font-sans">{Object.keys(IconMap).map(k => <option key={k} value={k}>{k}</option>)}</select>
+                      <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold border-b border-dashed text-slate-900 font-serif text-lg outline-none font-black" />
+                      <input type="text" value={day.date} onChange={(e) => updateDay(day.id, 'date', e.target.value)} className="w-full text-[11px] uppercase tracking-widest font-black text-slate-500 outline-none font-black font-sans" />
+                      <input type="text" value={day.desc} onChange={(e) => updateDay(day.id, 'desc', e.target.value)} className="w-full text-sm text-indigo-700 font-bold outline-none font-black" />
+                      <label className="flex items-center gap-2 mt-4 cursor-pointer font-black"><input type="checkbox" checked={day.highlight} onChange={(e) => updateDay(day.id, 'highlight', e.target.checked)} className="rounded text-slate-950 font-black" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-black">Full Day Team</span></label>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="font-sans">
+            <section className="font-sans font-sans">
               <h2 className="text-xs font-black mb-10 px-4 uppercase tracking-[0.3em] text-slate-400">03. Collections</h2>
-              <div className="space-y-8">
+              <div className="space-y-8 font-sans font-black">
                 {proposalData.packages.map((pkg) => (
                   <div key={pkg.id} className={`p-10 rounded-[3.5rem] border-2 transition-all ${pkg.isVisible ? 'bg-white border-slate-100' : 'bg-slate-50 opacity-50 border-dashed border-slate-200'}`}>
                     <div className="flex justify-between items-center mb-8 border-b pb-6 border-slate-50 font-black"><div className="flex items-center gap-4"><input type="checkbox" checked={pkg.isVisible} onChange={(e) => updatePackage(pkg.id, 'isVisible', e.target.checked)} className="w-6 h-6 rounded border-slate-200 text-slate-950" /><h3 className="text-2xl font-serif text-slate-950 leading-none">{pkg.name} Story</h3></div>{pkg.isVisible && <label className="flex items-center gap-2 bg-slate-950 text-white px-5 py-2 rounded-full cursor-pointer"><span className="text-[10px] font-black uppercase tracking-widest">Featured</span><input type="checkbox" checked={pkg.isHighlighted} onChange={(e) => updatePackage(pkg.id, 'isHighlighted', e.target.checked)} className="rounded" /></label>}</div>
                     {pkg.isVisible && (
-                      <div className="grid md:grid-cols-2 gap-12 font-sans font-black">
+                      <div className="grid md:grid-cols-2 gap-12 font-sans font-black font-sans font-black">
                         <div className="space-y-6">
-                          <input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, 'name', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl font-bold font-serif text-lg outline-none font-black" />
-                          <input type="text" value={pkg.price} onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl font-serif text-3xl font-bold text-indigo-700 outline-none font-black" />
-                          <textarea value={pkg.description} onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl italic text-sm resize-none outline-none font-black" />
+                          <input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, 'name', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl font-bold font-serif text-lg outline-none font-black font-black" />
+                          <input type="text" value={pkg.price} onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl font-serif text-3xl font-bold text-indigo-700 outline-none font-black font-black" />
+                          <textarea value={pkg.description} onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl italic text-sm resize-none outline-none font-black font-black font-black" />
                         </div>
-                        <textarea value={pkg.features.join('\n')} onChange={(e) => updatePackageFeatures(pkg.id, e.target.value.split('\n'))} className="w-full p-6 bg-slate-50 rounded-2xl text-sm leading-loose min-h-[200px] outline-none font-black" placeholder="Features (one per line)" />
+                        <textarea value={pkg.features.join('\n')} onChange={(e) => updatePackageFeatures(pkg.id, e.target.value.split('\n'))} className="w-full p-6 bg-slate-50 rounded-2xl text-sm leading-loose min-h-[200px] outline-none font-black font-black" placeholder="Features (one per line)" />
                       </div>
                     )}
                   </div>
@@ -407,25 +413,25 @@ const App = () => {
               </div>
             </section>
             
-            <section className="font-sans">
+            <section className="font-sans font-sans">
               <div className="flex justify-between items-center mb-10 px-4"><h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">04. Work & Praise</h2><div className="flex gap-4"><button onClick={addWorkLink} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest shadow-md"><Plus size={14} /> Add Link</button><button onClick={addReview} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest shadow-md"><Plus size={14} /> Add Praise</button></div></div>
               <div className="grid md:grid-cols-2 gap-6 font-sans">
                 {proposalData.workLinks?.map((link) => (
                   <div key={link.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans">
                     <button onClick={() => removeWorkLink(link.id)} className="absolute top-6 right-6 text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity"><Trash size={16} /></button>
-                    <div className="space-y-4 font-sans font-black">
-                      <input type="text" value={link.title} onChange={(e) => updateWorkLink(link.id, 'title', e.target.value)} className="w-full border-b border-slate-100 font-serif font-bold text-lg outline-none font-black" placeholder="Project Title" />
-                      <input type="text" value={link.url} onChange={(e) => updateWorkLink(link.id, 'url', e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-black" placeholder="URL" />
-                      <input type="text" value={link.note} onChange={(e) => updateWorkLink(link.id, 'note', e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-[10px] font-black uppercase tracking-widest" placeholder="Access Note" />
+                    <div className="space-y-4 font-sans font-black font-sans font-black">
+                      <input type="text" value={link.title} onChange={(e) => updateWorkLink(link.id, 'title', e.target.value)} className="w-full border-b border-slate-100 font-serif font-bold text-lg outline-none font-black font-black" placeholder="Project Title" />
+                      <input type="text" value={link.url} onChange={(e) => updateWorkLink(link.id, 'url', e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-black font-black" placeholder="URL" />
+                      <input type="text" value={link.note} onChange={(e) => updateWorkLink(link.id, 'note', e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-[10px] font-black uppercase tracking-widest font-black" placeholder="Access Note" />
                     </div>
                   </div>
                 ))}
                 {proposalData.reviews?.map((r) => (
-                   <div key={r.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans">
-                    <button onClick={() => removeReview(r.id)} className="absolute top-6 right-6 text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity font-sans"><Trash size={16} /></button>
-                    <div className="space-y-4 font-sans font-black">
-                      <input type="text" value={r.author} onChange={(e) => updateReview(r.id, 'author', e.target.value)} className="w-full border-b border-slate-100 font-serif font-bold text-lg outline-none font-black" placeholder="Couple Name" />
-                      <textarea rows="3" value={r.text} onChange={(e) => updateReview(r.id, 'text', e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-sm italic font-black" placeholder="Kind Words" />
+                   <div key={r.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans font-sans">
+                    <button onClick={() => removeReview(r.id)} className="absolute top-6 right-6 text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity font-sans font-black font-sans font-black"><Trash size={16} /></button>
+                    <div className="space-y-4 font-sans font-black font-sans font-black font-sans font-black">
+                      <input type="text" value={r.author} onChange={(e) => updateReview(r.id, 'author', e.target.value)} className="w-full border-b border-slate-100 font-serif font-bold text-lg outline-none font-black font-black font-black" placeholder="Couple Name" />
+                      <textarea rows="3" value={r.text} onChange={(e) => updateReview(r.id, 'text', e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-sm italic font-black font-black font-black" placeholder="Kind Words" />
                     </div>
                    </div>
                 ))}
@@ -438,32 +444,33 @@ const App = () => {
       {view === 'preview' && (
         <div className="min-h-screen bg-white relative selection:bg-[#C5A059]/20 font-sans leading-relaxed">
           {isExpired ? (
-            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-black font-sans">
-              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-black">
+            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-black font-sans font-black font-sans">
+              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-black font-black">
                 <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><AlertCircle size={40} strokeWidth={1} /></div>
-                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif font-black">Proposal Expired</h1>
-                <p className="text-slate-500 mb-10 font-medium font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black">{proposalData.clientName}</span> is currently inactive.</p>
-                <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired. Can we get an extension?`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest">Contact Studio</button>
+                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif font-black font-black">Proposal Expired</h1>
+                <p className="text-slate-500 mb-10 font-medium font-black font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black font-black">{proposalData.clientName}</span> is currently inactive.</p>
+                <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired. Can we get an extension?`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black">Contact Studio</button>
               </div>
             </div>
           ) : (
-            <div className="font-sans">
+            <div className="font-sans font-sans font-sans font-sans">
               <div className="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden bg-[#0d0d0d]">
                 <div className="absolute inset-0 opacity-60 font-sans"><img src={proposalData.heroImage} className="w-full h-full object-cover transform scale-105" alt="Hero" /></div>
                 <div className="relative z-10 text-center text-white px-8 font-sans">
-                  <img src={LOGO_URL} alt="Spark" className="mx-auto h-12 md:h-20 mb-10 object-contain drop-shadow-xl" />
-                  <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] mb-12 font-serif font-light italic leading-none">{proposalData.clientName}</h1>
+                  <img src={LOGO_URL} alt="Spark" className="mx-auto h-12 md:h-20 mb-10 object-contain drop-shadow-xl font-black font-sans" />
+                  <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] mb-12 font-serif font-light italic leading-none font-serif">{proposalData.clientName}</h1>
                   <div className="max-w-lg mx-auto border-t border-white/20 pt-12 font-sans font-black"><p className="text-sm md:text-xl font-light tracking-[0.2em] uppercase opacity-90 font-black">Bespoke Cinematic Narrative</p></div>
                 </div>
-                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40 font-black"><div className="w-[1px] h-20 bg-white"></div></div>
+                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40 font-black font-black font-black font-black"><div className="w-[1px] h-20 bg-white"></div></div>
               </div>
 
-              <section className="max-w-5xl mx-auto py-40 md:py-64 px-8 text-center leading-relaxed">
-                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-sans font-black mb-16 md:mb-24">The Vision</h2>
-                <p className="text-3xl md:text-5xl lg:text-6xl text-[#222222] font-light italic font-serif leading-[1.4]">"{proposalData.visionStatement}"</p>
+              {/* Tighter negative space - py-24 instead of py-40 */}
+              <section className="max-w-5xl mx-auto py-24 md:py-32 px-8 text-center leading-relaxed">
+                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-sans font-black mb-10 md:mb-16">The Vision</h2>
+                <p className="text-3xl md:text-5xl lg:text-6xl text-[#222222] font-light italic font-serif leading-[1.3]">"{proposalData.visionStatement}"</p>
               </section>
 
-              <section className="max-w-6xl mx-auto pb-40 md:pb-64 px-8 font-sans">
+              <section className="max-w-6xl mx-auto pb-24 md:pb-32 px-8 font-sans">
                 <div className="relative aspect-video bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center overflow-hidden shadow-inner font-sans">
                   {proposalData.loomUrl ? (
                     <iframe title="Loom" src={proposalData.loomUrl.replace("loom.com/share", "loom.com/embed")} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
@@ -477,45 +484,47 @@ const App = () => {
                 </div>
               </section>
 
-              <section className="bg-[#fcfcfb] py-32 md:py-48 px-8 border-y border-slate-100 leading-normal font-sans">
+              <section className="bg-[#fcfcfb] py-24 md:py-32 px-8 border-y border-slate-100 leading-normal font-sans">
                 <div className="max-w-7xl mx-auto">
-                  <div className="text-center mb-24 md:mb-32 font-serif font-black">
+                  <div className="text-center mb-16 md:mb-24 font-serif font-black">
                     <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950 leading-none italic">The Itinerary</h2>
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Documenting the Journey</p>
                   </div>
-                  <div className="grid gap-8 md:grid-cols-4 font-black">
+                  {/* CENTRALIZED Logic: if 1 day, center it. Otherwise 4 columns. */}
+                  <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black`}>
                     {proposalData.days.map((day) => (
-                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''}`}>
-                        <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 font-black'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
-                        <h4 className="font-black text-[11px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans">{day.label}</h4>
-                        <p className="text-[#121212] text-[14px] font-black mb-4 tracking-widest uppercase font-sans">{day.date}</p>
-                        <p className={`text-xl md:text-2xl font-serif italic font-medium leading-relaxed font-black`}>{day.desc}</p>
-                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black text-[10px] text-slate-800 tracking-widest uppercase font-sans font-black leading-none">Continuous Production Team</div>}
+                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''}`}>
+                        <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 font-black font-black'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
+                        <h4 className="font-black text-[13px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans">{day.label}</h4>
+                        <p className="text-[#121212] text-[16px] font-black mb-4 tracking-widest uppercase font-sans">{day.date}</p>
+                        {/* BIGGER TEXT for ITINERARY DESCRIPTION */}
+                        <p className={`text-2xl md:text-3xl font-serif italic font-medium leading-relaxed font-black`}>{day.desc}</p>
+                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black text-[11px] text-slate-800 tracking-widest uppercase font-sans font-black leading-none">Continuous Production Team</div>}
                       </div>
                     ))}
                   </div>
                 </div>
               </section>
 
-              <section className="max-w-[1440px] mx-auto py-40 md:py-64 px-8 font-serif font-black">
-                <div className="text-center mb-32 md:mb-48 font-serif font-black font-black">
+              <section className="max-w-[1440px] mx-auto py-24 md:py-32 px-8 font-serif font-black">
+                <div className="text-center mb-24 md:mb-32 font-serif font-black font-black">
                   <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none italic font-serif">The Collections</h2>
-                  <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans"><div className="h-[1px] w-12 bg-slate-200 font-black"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200 font-black"></div></div>
+                  <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans font-black"><div className="h-[1px] w-12 bg-slate-200 font-black"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200 font-black"></div></div>
                 </div>
-                <div className={`grid gap-10 items-stretch justify-center font-sans font-black ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : 'lg:grid-cols-2 max-w-7xl mx-auto'}`}>
+                <div className={`grid gap-10 items-stretch justify-center font-sans font-black ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : 'lg:grid-cols-3 max-w-full'}`}>
                   {proposalData.packages.filter(p => p.isVisible).map((item) => (
-                    <div key={item.id} className={`relative flex flex-col p-12 md:p-16 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl' : 'bg-white border-slate-100 font-black'}`}>
-                      {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase font-sans font-black font-sans">Recommended</div>}
+                    <div key={item.id} className={`relative flex flex-col p-10 md:p-12 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl font-black' : 'bg-white border-slate-100 font-black'}`}>
+                      {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase font-sans font-black font-sans font-black font-sans">Recommended</div>}
                       <div className="mb-14 font-black">
-                        <h3 className="text-3xl md:text-4xl font-light mb-6 text-slate-950 font-serif leading-none italic font-black">{item.name} Story</h3>
-                        <div className="text-6xl md:text-9xl font-serif mb-10 text-slate-950 tracking-tighter font-black leading-none font-black">{item.price}</div>
-                        <p className="text-base md:text-xl text-slate-500 leading-relaxed italic font-serif font-medium font-black">{item.description}</p>
+                        <h3 className="text-3xl md:text-4xl font-light mb-6 text-slate-950 font-serif leading-none italic font-black font-black">{item.name} Story</h3>
+                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter font-black leading-none font-black">{item.price}</div>
+                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-serif font-medium font-black">{item.description}</p>
                       </div>
-                      <div className="flex-grow space-y-8 mb-16 border-t border-slate-50 pt-16 font-black font-sans">
+                      <div className="flex-grow space-y-7 mb-16 border-t border-slate-50 pt-16 font-black font-sans">
                         {item.features.filter(f => f.trim() !== "").map((feature, fIdx) => (
-                          <div key={fIdx} className="flex items-start gap-5 font-black font-sans font-black">
+                          <div key={fIdx} className="flex items-start gap-5 font-black font-sans font-black font-black">
                             <div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300 font-black'}`}><CheckCircle size={22} strokeWidth={1.5} className="font-black" /></div>
-                            <span className="text-base md:text-xl text-[#333333] tracking-tight font-medium font-sans font-black">{feature}</span>
+                            <span className="text-base md:text-lg text-[#333333] tracking-tight font-medium font-sans font-black">{feature}</span>
                           </div>
                         ))}
                       </div>
@@ -525,41 +534,44 @@ const App = () => {
                 </div>
               </section>
 
-              <section className="max-w-6xl mx-auto py-32 md:py-48 px-8 font-sans font-black">
-                <div className="text-center mb-24 font-serif font-black font-black">
+              {/* BIGGER PROCESS STEPS */}
+              <section className="max-w-6xl mx-auto py-24 md:py-32 px-8 font-sans font-black">
+                <div className="text-center mb-16 md:mb-24 font-serif font-black font-black">
                   <h2 className="text-4xl md:text-6xl font-light mb-8 leading-none italic font-black font-serif">The Process</h2>
                   <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-black font-sans">A Sequence of Excellence</p>
                 </div>
-                <div className="grid md:grid-cols-3 gap-12 relative font-sans font-black">
+                <div className="grid md:grid-cols-3 gap-16 relative font-sans font-black">
                   {[
-                    { step: "01", title: "Vision Call", desc: "A creative session to align on the artistic direction.", icon: <MessageCircle /> },
-                    { step: "02", title: "Confirmation", desc: "A retainer and signed agreement secure your dates.", icon: <Award /> },
-                    { step: "03", title: "Final Design", desc: "Timelines and reference reviews prior to shooting.", icon: <Map /> }
+                    { step: "01", title: "Vision Call", desc: "A creative session to align on the artistic direction and schedule flow.", icon: <MessageCircle /> },
+                    { step: "02", title: "Confirmation", desc: "A 30% retainer and signed agreement secure your specific block in our calendar.", icon: <Award /> },
+                    { step: "03", title: "Final Design", desc: "Timeline refinements and reference reviews 30 days prior to refine timeline specifics.", icon: <Map /> }
                   ].map((item, idx) => (
                     <div key={idx} className="relative z-10 text-center flex flex-col items-center group font-black font-sans font-black">
-                      <div className="w-20 h-20 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500 font-black font-sans">{item.icon}</div>
+                      <div className="w-24 h-24 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500 font-black font-sans">{item.icon}</div>
                       <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em] font-sans font-black font-black">{item.step}</span>
-                      <h4 className="text-2xl font-serif italic mb-4 text-slate-950 font-black font-serif">{item.title}</h4>
-                      <p className="text-sm leading-relaxed text-slate-500 font-medium px-4 font-black">{item.desc}</p>
+                      {/* BIGGER PROCESS TITLE */}
+                      <h4 className="text-3xl font-serif italic mb-6 text-slate-950 font-black font-serif">{item.title}</h4>
+                      {/* BIGGER PROCESS DESCRIPTION */}
+                      <p className="text-lg leading-relaxed text-slate-500 font-medium px-4 font-black">{item.desc}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
               {proposalData.workLinks && proposalData.workLinks.length > 0 && (
-                <section className="bg-slate-950 py-32 md:py-48 px-8 font-sans font-black">
+                <section className="bg-slate-950 py-24 md:py-32 px-8 font-sans font-black">
                   <div className="max-w-5xl mx-auto font-black font-sans font-black">
-                    <div className="text-center mb-20 font-serif font-black font-black">
+                    <div className="text-center mb-16 font-serif font-black font-black">
                       <h2 className="text-3xl md:text-5xl italic text-white mb-8 font-serif leading-none font-black font-black font-black">Selected Stories</h2>
                       <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase font-black font-sans font-black">Recommended Viewing</p>
                     </div>
                     <div className="grid sm:grid-cols-2 gap-8 font-black font-sans font-black font-black">
                       {proposalData.workLinks.map((link) => (
                         <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-10 rounded-[3rem] flex items-center justify-between group hover:bg-white/10 transition-all font-black font-sans font-black">
-                          <div className="font-black font-sans font-black">
+                          <div className="font-black font-sans font-black font-black">
                             <h4 className="text-white font-bold text-xl mb-2 font-serif italic leading-none font-black font-black">{link.title}</h4>
                             <div className="flex items-center gap-2 font-black font-sans font-black font-black">
-                                <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black font-sans leading-none font-black">Launch Gallery</span>
+                                <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black font-sans leading-none font-black font-black">Launch Gallery</span>
                                 {link.note && <div className="bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none flex items-center gap-1 font-black font-sans font-black font-black"><LockKeyhole size={10} className="font-black" /> {link.note}</div>}
                             </div>
                           </div>
@@ -571,23 +583,23 @@ const App = () => {
                 </section>
               )}
 
-              <section className="bg-[#fafaf9] py-32 md:py-48 px-8 border-y border-slate-100 font-sans font-black">
-                <div className="max-w-6xl mx-auto font-black">
-                  <div className="text-center mb-24 md:mb-32 font-serif font-black font-black font-black font-black">
+              <section className="bg-[#fafaf9] py-24 md:py-32 px-8 border-y border-slate-100 font-sans font-black">
+                <div className="max-w-6xl mx-auto font-black font-black font-black">
+                  <div className="text-center mb-20 md:mb-24 font-serif font-black font-black font-black font-black">
                     <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 font-serif leading-none font-black font-black font-black">Kind Words</h2>
-                    <div className="flex items-center justify-center gap-2 mb-4 font-black">
+                    <div className="flex items-center justify-center gap-2 mb-4 font-black font-black">
                       {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059] font-black" />)}
                     </div>
                     <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-black font-sans font-black">Trusted by Spark Couples</p>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-black font-sans font-black font-black">
+                  <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-black font-sans font-black font-black font-black">
                     {proposalData.reviews.map((review) => (
                       <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-black font-sans font-black">
                         <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-black" size={80} strokeWidth={0.5} />
-                        <div className="relative z-10 font-black font-sans font-black leading-relaxed">
+                        <div className="relative z-10 font-black font-sans font-black leading-relaxed font-black">
                           <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black font-serif">"{review.text}"</p>
                           <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-sans font-black">
-                            <div className="h-1px w-12 bg-[#C5A059] font-black"></div>
+                            <div className="h-1px w-12 bg-[#C5A059] font-black font-black"></div>
                             <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none font-black">{review.author}</p>
                           </div>
                         </div>
@@ -597,31 +609,31 @@ const App = () => {
                 </div>
               </section>
 
-              <footer className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative font-sans font-black font-black font-black font-black">
-                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-black"></div>
-                <div className="max-w-6xl mx-auto relative z-10 font-black">
-                  <div className="grid md:grid-cols-2 gap-24 items-center font-black">
-                    <div className="text-left leading-relaxed font-black font-black">
+              <footer className="bg-[#0a0a0a] text-white py-32 md:py-48 px-8 overflow-hidden relative font-sans font-black font-black font-black font-black">
+                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-black font-black"></div>
+                <div className="max-w-6xl mx-auto relative z-10 font-black font-black">
+                  <div className="grid md:grid-cols-2 gap-24 items-center font-black font-black">
+                    <div className="text-left leading-relaxed font-black font-black font-black">
                       <h3 className="text-6xl md:text-8xl mb-12 italic leading-none text-white font-serif font-black">Your Legacy Starts Here.</h3>
-                      <div className="space-y-16 font-black">
-                        <div className="flex gap-8 font-black">
-                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black"><Clock size={28} className="text-[#C5A059] font-black" strokeWidth={1} /></div>
+                      <div className="space-y-12 font-black font-black">
+                        <div className="flex gap-8 font-black font-black">
+                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black font-black"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
                           <div className="font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
                         </div>
-                        <div className="flex gap-8 font-black font-black">
-                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black"><Award size={28} className="text-[#C5A059] font-black" strokeWidth={1} /></div>
-                          <div className="font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-black">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all details and dates.</p></div>
+                        <div className="flex gap-8 font-black font-black font-black">
+                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black font-black font-black"><Award size={28} className="text-[#C5A059] font-black" strokeWidth={1} /></div>
+                          <div className="font-black font-black font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-black font-black">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all details and dates.</p></div>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] shadow-2xl relative group overflow-hidden font-black font-black">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125 font-black"></div>
-                      <h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none font-black font-black">Vision Call</h4>
-                      <p className="text-slate-600 mb-16 text-xl leading-relaxed font-medium pr-4 font-black">To ensure our artistic styles align, we invite you to a brief introductory session.</p>
-                      <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for ${proposalData.clientName}.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-black font-black font-black font-black">Connect on WhatsApp <MessageCircle size={20} className="font-black font-black" /></button>
+                    <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] shadow-2xl relative group overflow-hidden font-black font-black font-black">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125 font-black font-black"></div>
+                      <h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none font-black font-black font-black">Vision Call</h4>
+                      <p className="text-slate-600 mb-16 text-xl leading-relaxed font-medium pr-4 font-black font-black font-black">To ensure our artistic styles align, we invite you to a brief 15-minute introductory session.</p>
+                      <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for ${proposalData.clientName}.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-black font-black font-black font-black font-black">Connect on WhatsApp <MessageCircle size={20} className="font-black font-black font-black font-black" /></button>
                     </div>
                   </div>
-                  <div className="mt-48 pt-20 border-t border-white/10 text-center font-black font-black font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-black font-black">The Spark Studios &copy; 2026</p></div>
+                  <div className="mt-32 md:mt-48 pt-20 border-t border-white/10 text-center font-black font-black font-black font-black font-black font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-black font-black font-black font-black font-black">The Spark Studios &copy; 2026</p></div>
                 </div>
               </footer>
             </div>
