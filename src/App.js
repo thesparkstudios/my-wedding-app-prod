@@ -512,7 +512,12 @@ const App = () => {
                   <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none italic font-serif">The Collections</h2>
                   <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans font-black"><div className="h-[1px] w-12 bg-slate-200 font-black"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200 font-black"></div></div>
                 </div>
-                <div className={`grid gap-10 items-stretch justify-center font-sans font-black ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : 'lg:grid-cols-3 max-w-full'}`}>
+                {/* CENTRALIZED PACKAGES Logic: constraints width and centers if 1 or 2 packages */}
+                <div className={`grid gap-10 items-stretch justify-center font-sans font-black ${
+                  proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto grid-cols-1' : 
+                  proposalData.packages.filter(p => p.isVisible).length === 2 ? 'max-w-5xl mx-auto grid-cols-1 md:grid-cols-2' : 
+                  'lg:grid-cols-3 max-w-full'
+                }`}>
                   {proposalData.packages.filter(p => p.isVisible).map((item) => (
                     <div key={item.id} className={`relative flex flex-col p-10 md:p-12 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl font-black' : 'bg-white border-slate-100 font-black'}`}>
                       {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase font-sans font-black font-sans font-black font-sans">Recommended</div>}
