@@ -104,7 +104,7 @@ const App = () => {
         isHighlighted: false,
         features: [
           "Everything in Signature",
-          "Expanded Production Coverage (Additional Team for 5 Hours)",
+          "Expanded Production Coverage (Additional Team)",
           "Upgraded Premium Faux Leather Case",
           "Custom-Designed USB Presentation Case",
           "Guaranteed 6-Week Digital Delivery",
@@ -114,8 +114,8 @@ const App = () => {
       }
     ],
     reviews: [
-      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with! From the first email inquiry I sent to receiving the finished video in the end, he made the entire process so easy and stress-free." },
-      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding shoot to life." }
+      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
+      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun." }
     ],
     workLinks: [
       { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
@@ -164,7 +164,7 @@ const App = () => {
       if (hash.startsWith('#/quote/')) {
         const id = hash.replace('#/quote/', '');
         
-        // Prevent hash from taking admin out of editor mode if they are editing the same quote
+        // Prevent hash from taking admin out of editor mode if they are editing
         if (view === 'editor' && currentQuoteId === id) return;
 
         setCurrentQuoteId(id);
@@ -190,7 +190,7 @@ const App = () => {
             setView('dashboard');
           }
         } catch (err) {
-          setFbError("Lead load error.");
+          setFbError("Load error.");
         }
       } else if (!hash && isUnlocked) {
         if (view !== 'editor') setView('dashboard');
@@ -218,30 +218,23 @@ const App = () => {
     if (!auth.currentUser) return;
     setIsSaving(true);
     setFbError(null);
-    
-    // REUSE existing ID if editing
     const id = currentQuoteId || proposalData.clientName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
-    
     try {
       const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', id);
       const dataToSave = { 
-        ...proposalData, 
-        id, 
-        updatedAt: Date.now(), 
+        ...proposalData, id, updatedAt: Date.now(), 
         createdAt: proposalData.createdAt || Date.now(),
         views: proposalData.views || 0,
         lastViewedAt: proposalData.lastViewedAt || null
       };
       await setDoc(docRef, dataToSave);
       setCurrentQuoteId(id);
-      
       const newHash = `#/quote/${id}`;
       if (window.location.hash !== newHash) window.history.replaceState(null, null, newHash);
-      
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 3000);
     } catch (err) {
-      setFbError("Save denied.");
+      setFbError("Save failed.");
     } finally {
       setIsSaving(false);
     }
@@ -256,7 +249,6 @@ const App = () => {
     }
   };
 
-  // State update helpers
   const updateField = (field, value) => setProposalData(prev => ({ ...prev, [field]: value }));
   const updateDay = (id, field, value) => setProposalData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, [field]: value } : d) }));
   const addDay = () => setProposalData(prev => ({ ...prev, days: [...prev.days, { id: Date.now(), label: "New Day", date: "Date", desc: "Service Details", icon: "Clock", highlight: false }] }));
@@ -271,10 +263,7 @@ const App = () => {
   const removeWorkLink = (id) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.filter(l => l.id !== id) }));
   const createNew = () => { setCurrentQuoteId(null); setProposalData({ ...initialProposalState, createdAt: Date.now() }); window.location.hash = ''; setView('editor'); };
 
-  const openWhatsAppMsg = (msg) => {
-    const encoded = encodeURIComponent(msg);
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
-  };
+  const IconMap = { Calendar: <Calendar size={18} />, Clock: <Clock size={18} />, Film: <Film size={18} />, Zap: <Zap size={18} />, Camera: <Camera size={18} /> };
 
   if (!isUnlocked && !loading) {
     return (
@@ -285,8 +274,8 @@ const App = () => {
           .font-sans { font-family: 'Montserrat', sans-serif !important; }
         `}</style>
         <div className="max-w-md w-full bg-white p-10 md:p-14 rounded-[3rem] shadow-2xl text-center font-sans">
-          <div className="w-20 h-20 bg-slate-50 text-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-10 border border-slate-100"><Lock size={32} strokeWidth={1.5} /></div>
-          <h2 className="text-2xl font-light mb-2 tracking-[0.1em] text-slate-950 uppercase font-serif">Spark Portal</h2>
+          <div className="w-20 h-20 bg-slate-50 text-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-10 border border-slate-100 shadow-sm"><Lock size={32} strokeWidth={1.5} /></div>
+          <h2 className="text-2xl font-light mb-2 tracking-[0.1em] text-slate-950 uppercase text-center font-serif leading-none">Spark Portal</h2>
           <p className="text-slate-400 text-[10px] mb-10 tracking-[0.3em] uppercase font-sans font-black">Internal Studio Access</p>
           <input type="password" placeholder="KEY CODE" className="w-full p-4 border border-slate-200 bg-slate-50/50 rounded-2xl mb-6 text-center outline-none focus:ring-1 focus:ring-slate-300 transition-all font-mono tracking-[0.4em] text-sm font-sans font-black" value={passInput} onChange={(e) => setPassInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && passInput === 'wayssmffss2') { setIsUnlocked(true); setIsAdmin(true); } }} />
           <button onClick={() => { if(passInput === 'wayssmffss2') { setIsUnlocked(true); setIsAdmin(true); } }} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold hover:bg-slate-800 transition-all uppercase tracking-widest text-xs active:scale-95 font-sans">Open Portal</button>
@@ -295,7 +284,7 @@ const App = () => {
     );
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white animate-pulse font-sans"><div className="text-[10px] uppercase tracking-[0.4em] text-slate-400 font-sans font-black">The Spark Studios</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white animate-pulse font-sans"><div className="text-[10px] uppercase tracking-[0.4em] text-slate-400 font-sans font-black leading-none">The Spark Studios</div></div>;
 
   return (
     <div className="min-h-screen bg-[#fdfdfc] selection:bg-slate-200">
@@ -334,7 +323,7 @@ const App = () => {
                     onClick={() => { 
                       setProposalData(quote); 
                       setCurrentQuoteId(quote.id); 
-                      window.location.hash = ''; // Clear hash to force editor view
+                      window.location.hash = ''; // Essential Fix
                       setView('editor'); 
                     }} 
                     className="flex-1 py-4 px-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition text-slate-900 font-black text-[11px] uppercase tracking-widest font-sans"
@@ -374,7 +363,7 @@ const App = () => {
               <button onClick={() => { setView('dashboard'); window.location.hash = ''; }} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-slate-900 hover:shadow-md transition font-sans"><ArrowLeft size={20} /></button>
               <div className="font-sans">
                 <h1 className="text-3xl font-light tracking-tight text-slate-950 font-serif leading-none mb-1">Proposal Editor</h1>
-                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] font-sans">{currentQuoteId ? `ID: ${currentQuoteId}` : 'New Cinematic Story'}</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] font-sans">{currentQuoteId ? `Editing existing link for: ${proposalData.clientName}` : 'New Cinematic Story'}</p>
               </div>
             </div>
             <div className="flex gap-4 w-full md:w-auto font-sans font-black">
@@ -398,7 +387,7 @@ const App = () => {
             </section>
 
             <section className="font-sans">
-              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em] font-sans">02. Event Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-md font-sans"><Plus size={14} /> Add Day</button></div>
+              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em] font-sans">02. Event Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-md font-sans"><Plus size={14} /> Add Segment</button></div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
                 {proposalData.days.map((day) => (
                   <div key={day.id} className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 ${day.highlight ? 'border-indigo-100 bg-indigo-50/20' : 'border-slate-100 bg-white'}`}>
@@ -442,8 +431,8 @@ const App = () => {
                   <div key={link.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans">
                     <button onClick={() => removeWorkLink(link.id)} className="absolute top-6 right-6 text-rose-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity font-sans"><Trash size={16} /></button>
                     <div className="space-y-4 font-sans">
-                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Project Title</label><input type="text" value={link.title} onChange={(e) => updateWorkLink(link.id, 'title', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-serif text-slate-900 leading-none font-black" /></div>
-                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">URL</label><input type="text" value={link.url} onChange={(e) => updateWorkLink(link.id, 'url', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-xs outline-none font-sans font-black" /></div>
+                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Project Title</label><input type="text" value={link.title} onChange={(e) => updateWorkLink(link.id, 'title', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-serif text-slate-900 leading-none" /></div>
+                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">URL</label><input type="text" value={link.url} onChange={(e) => updateWorkLink(link.id, 'url', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-xs outline-none font-sans" /></div>
                       <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Access Note</label><input type="text" value={link.note} onChange={(e) => updateWorkLink(link.id, 'note', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-xs outline-none font-sans font-black uppercase tracking-widest" placeholder="e.g. Code: SPARK123" /></div>
                     </div>
                   </div>
@@ -452,14 +441,14 @@ const App = () => {
             </section>
 
             <section className="font-sans">
-              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em] font-sans font-black">05. Client Praise</h2><button onClick={addReview} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest shadow-md font-sans font-black font-sans font-black font-sans"><Plus size={14} /> Add Review</button></div>
+              <div className="flex justify-between items-center mb-10 px-4 font-sans"><h2 className="text-xs font-black flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em] font-sans font-black">05. Client Praise</h2><button onClick={addReview} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest shadow-md font-sans font-black font-sans"><Plus size={14} /> Add Review</button></div>
               <div className="grid md:grid-cols-2 gap-6 font-sans">
                 {proposalData.reviews?.map((review) => (
                   <div key={review.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 relative group font-sans">
                     <button onClick={() => removeReview(review.id)} className="absolute top-6 right-6 text-rose-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity font-sans font-black"><Trash size={16} /></button>
                     <div className="space-y-5 font-sans font-black">
-                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Couple Name</label><input type="text" value={review.author} onChange={(e) => updateReview(review.id, 'author', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-serif text-slate-900 font-black leading-none" /></div>
-                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Review</label><textarea rows="3" value={review.text} onChange={(e) => updateReview(review.id, 'text', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-sm italic outline-none resize-none font-sans font-black font-sans" /></div>
+                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Couple Name</label><input type="text" value={review.author} onChange={(e) => updateReview(review.id, 'author', e.target.value)} className="w-full p-3 border-b border-slate-100 font-bold outline-none focus:border-slate-400 transition-all font-serif text-slate-900 leading-none" /></div>
+                      <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-sans font-black">Review</label><textarea rows="3" value={review.text} onChange={(e) => updateReview(review.id, 'text', e.target.value)} className="w-full p-3 bg-slate-50/50 rounded-xl text-sm italic outline-none resize-none font-sans" /></div>
                     </div>
                   </div>
                 ))}
@@ -472,7 +461,7 @@ const App = () => {
       {view === 'preview' && (
         <div className="min-h-screen font-serif text-[#121212] bg-white relative selection:bg-[#C5A059]/20 font-sans leading-relaxed">
           {isExpired ? (
-            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans font-black"><div className="max-w-md w-full bg-white p-12 md:p-16 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-sans font-black"><div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10 font-sans font-black"><AlertCircle size={40} strokeWidth={1} className="font-sans font-black" /></div><h1 className="text-3xl font-light mb-6 text-slate-950 tracking-tight leading-none font-serif font-black">Proposal Expired</h1><p className="text-slate-500 mb-10 font-medium leading-relaxed font-sans font-black">This curated narrative for <span className="text-slate-950 font-black font-sans font-black">{proposalData.clientName}</span> is no longer active.</p><div className="h-[1px] bg-slate-100 w-full mb-10 font-sans font-black"></div><button onClick={() => openWhatsAppMsg(`Hi! Our proposal for ${proposalData.clientName} just expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] font-sans font-black">Request Extension <ArrowLeft className="rotate-180" size={16} /></button></div></div>
+            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans font-black"><div className="max-w-md w-full bg-white p-12 md:p-16 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-sans font-black"><div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10 font-sans font-black"><AlertCircle size={40} strokeWidth={1} className="font-sans font-black" /></div><h1 className="text-3xl font-light mb-6 text-slate-950 tracking-tight leading-none font-serif font-black">Proposal Expired</h1><p className="text-slate-500 mb-10 font-medium leading-relaxed font-sans font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black">{proposalData.clientName}</span> has expired.</p><button onClick={() => openWhatsAppMsg(`Hi! Our proposal for ${proposalData.clientName} just expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] font-sans font-black">Contact Studio <ArrowLeft className="rotate-180" size={16} /></button></div></div>
           ) : (
             <div className="font-sans">
               <div className="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden bg-[#0d0d0d]">
@@ -482,7 +471,7 @@ const App = () => {
                   <h1 className="text-5xl md:text-[8rem] lg:text-[10rem] mb-12 tracking-tighter font-serif leading-none">{proposalData.clientName}</h1>
                   <div className="max-w-lg mx-auto border-t border-white/20 pt-12 font-sans font-black"><p className="text-sm md:text-xl font-light tracking-[0.2em] uppercase opacity-90 font-sans font-black">Bespoke Cinematic Narrative</p></div>
                 </div>
-                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40 font-sans font-black"><div className="w-[1px] h-20 bg-white font-sans font-black"></div></div>
+                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40 font-sans font-black"><div className="w-[1px] h-20 bg-white"></div></div>
               </div>
 
               <section className="max-w-5xl mx-auto py-40 md:py-64 px-8 text-center leading-relaxed">
@@ -496,10 +485,8 @@ const App = () => {
                     <iframe title="Loom" src={proposalData.loomUrl} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
                   ) : (
                     <div className="font-sans p-10">
-                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059]">
-                        <Play size={32} fill="currentColor" strokeWidth={0} />
-                      </div>
-                      <h4 className="text-2xl font-light mb-4 tracking-tight text-slate-900 italic font-serif">A Personal Message from our Founder</h4>
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059]"><Play size={32} fill="currentColor" strokeWidth={0} /></div>
+                      <h4 className="text-2xl font-light mb-4 tracking-tight text-slate-900 italic font-serif leading-none">Personal Message</h4>
                       <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans">Cinematic Intro Coming Soon</p>
                     </div>
                   )}
@@ -518,8 +505,8 @@ const App = () => {
                         <div className={`w-16 h-16 flex items-center justify-center rounded-[1.5rem] mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
                         <h4 className="font-black text-[11px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-sans font-black">{day.label}</h4>
                         <p className="text-[#121212] text-[14px] font-black mb-4 tracking-widest uppercase font-sans font-black">{day.date}</p>
-                        <p className="text-xl md:text-2xl font-serif italic font-medium leading-relaxed">{day.desc}</p>
-                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black"><p className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em] leading-relaxed font-sans">Continuous Cinema Unit<br/>Full Day Marathon Production</p></div>}
+                        <p className={`text-xl md:text-2xl font-serif italic font-medium leading-relaxed`}>{day.desc}</p>
+                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black font-sans text-[11px] text-slate-800 tracking-widest uppercase uppercase">Continuous Production Unit</div>}
                       </div>
                     ))}
                   </div>
@@ -529,27 +516,16 @@ const App = () => {
               <section className="max-w-[1440px] mx-auto py-40 md:py-64 px-8 leading-normal font-serif">
                 <div className="text-center mb-32 md:mb-48 font-serif font-black">
                   <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none">The Collections</h2>
-                  <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans">
-                    <div className="h-[1px] w-12 bg-slate-200"></div>
-                    <span className="font-sans font-black font-sans">Curated Investment</span>
-                    <div className="h-[1px] w-12 bg-slate-200"></div>
-                  </div>
+                  <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans"><div className="h-[1px] w-12 bg-slate-200"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200"></div></div>
                 </div>
                 <div className={`grid gap-8 md:gap-12 items-stretch justify-center font-sans ${proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto' : 'lg:grid-cols-3'}`}>
                   {proposalData.packages.filter(p => p.isVisible).map((item) => (
                     <div key={item.id} className={`relative flex flex-col p-10 md:p-14 rounded-[3.5rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl' : 'bg-white border-slate-100'}`}>
                       {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3.5 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase font-sans font-black">Recommended</div>}
-                      <div className="mb-14 md:mb-16">
-                        <h3 className="text-3xl md:text-4xl font-light mb-6 tracking-tight text-slate-950 font-serif leading-none">{item.name}</h3>
-                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter leading-none">{item.price}</div>
-                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-medium pr-4 font-serif">{item.description}</p>
-                      </div>
+                      <div className="mb-14 md:mb-16"><h3 className="text-3xl md:text-4xl font-light mb-6 tracking-tight text-slate-950 font-serif leading-none">{item.name}</h3><div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter leading-none">{item.price}</div><p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-medium pr-4 font-serif">{item.description}</p></div>
                       <div className="flex-grow space-y-7 md:space-y-8 mb-16 border-t border-slate-50 pt-16 font-sans">
                         {item.features.filter(f => f.trim() !== "").map((feature, fIdx) => (
-                          <div key={fIdx} className="flex items-start gap-5 font-sans font-black">
-                            <div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300'}`}><CheckCircle size={20} strokeWidth={1.5} /></div>
-                            <span className="text-base md:text-lg text-[#333333] leading-snug tracking-tight font-medium font-sans font-black">{feature}</span>
-                          </div>
+                          <div key={fIdx} className="flex items-start gap-5 font-sans font-black"><div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300'}`}><CheckCircle size={20} strokeWidth={1.5} /></div><span className="text-base md:text-lg text-[#333333] leading-snug tracking-tight font-medium font-sans font-black">{feature}</span></div>
                         ))}
                       </div>
                       <button onClick={() => openWhatsAppMsg(`Hi! I'd like to book the ${item.name} Story.`)} className="w-full py-7 rounded-[2rem] font-black text-[11px] tracking-[0.4em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] font-sans font-black">Inquire Selection <MessageCircle size={18} /></button>
@@ -558,82 +534,73 @@ const App = () => {
                 </div>
               </section>
 
-              <section className="bg-slate-950 py-32 md:py-48 px-8 font-sans">
-                <div className="max-w-5xl mx-auto">
-                  <div className="text-center mb-20 font-serif font-black">
-                    <h2 className="text-3xl md:text-5xl italic text-white mb-8 leading-none">Selected Stories</h2>
-                    <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase font-sans font-black">Recommended Viewing</p>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-8 font-sans">
+              {/* The Process */}
+              <section className="max-w-6xl mx-auto py-32 md:py-48 px-8 font-sans">
+                <div className="text-center mb-24 font-serif font-black">
+                  <h2 className="text-4xl md:text-6xl font-light mb-8 leading-none">The Process</h2>
+                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">A Sequence of Excellence</p>
+                </div>
+                <div className="grid md:grid-cols-3 gap-12 relative font-sans">
+                  {[
+                    { step: "01", title: "Vision Call", desc: "A creative session to align on the artistic direction.", icon: <MessageCircle /> },
+                    { step: "02", title: "Confirmation", desc: "A retainer and signed agreement secure your dates.", icon: <Award /> },
+                    { step: "03", title: "Final Design", desc: "Timelines and reference reviews prior to shooting.", icon: <Map /> }
+                  ].map((item, idx) => (
+                    <div key={idx} className="relative z-10 text-center flex flex-col items-center group">
+                      <div className="w-20 h-20 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500">{item.icon}</div>
+                      <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em] font-sans">{item.step}</span>
+                      <h4 className="text-2xl font-serif italic mb-4 text-slate-950 leading-none">{item.title}</h4>
+                      <p className="text-sm leading-relaxed text-slate-500 font-medium px-4">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Curated Work */}
+              {proposalData.workLinks && proposalData.workLinks.length > 0 && (
+                <section className="bg-slate-950 py-32 md:py-48 px-8 font-sans">
+                  <div className="max-w-5xl mx-auto"><div className="text-center mb-20 font-serif font-black"><h2 className="text-3xl md:text-5xl italic text-white mb-8 leading-none">Selected Stories</h2><p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase">Recommended Viewing</p></div><div className="grid sm:grid-cols-2 gap-8 font-sans">
                     {proposalData.workLinks.map((link) => (
-                      <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500 font-sans font-black font-sans">
-                        <div className="font-black">
-                          <h4 className="text-white font-bold text-lg mb-2 font-serif tracking-tight leading-none font-black">{link.title}</h4>
-                          <div className="flex items-center gap-2 mb-1">
-                              <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black font-sans leading-none">Launch Gallery</span>
-                              {link.note && <div className="flex items-center gap-1.5 bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none font-sans font-black"><LockKeyhole size={10} /> {link.note}</div>}
-                          </div>
-                        </div>
-                        <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500 shrink-0"><LinkIcon size={18} /></div>
-                      </a>
+                      <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/10 transition-all duration-500 font-sans font-black"><div className="font-black"><h4 className="text-white font-bold text-lg mb-2 font-serif tracking-tight leading-none">{link.title}</h4><div className="flex items-center gap-2 mb-1"><span className="text-slate-400 text-[10px] tracking-widest uppercase font-black leading-none">Launch Gallery</span>{link.note && <div className="flex items-center gap-1.5 bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none font-sans font-black"><LockKeyhole size={10} /> {link.note}</div>}</div></div><div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all duration-500 shrink-0"><LinkIcon size={18} /></div></a>
                     ))}
-                  </div>
+                  </div></div>
+                </section>
+              )}
+
+              {/* Luxury FAQs */}
+              <section className="max-w-4xl mx-auto py-32 md:py-56 px-8 font-sans">
+                <div className="text-center mb-24 font-serif font-sans"><h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none">The Fine Print</h2><p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Studio Commitment</p></div><div className="space-y-12 font-sans font-black">
+                  {[
+                    { q: "The Aerial Perspective", a: "Drones are essential to high-end cinema. We include drone coverage in every collection at no additional cost." },
+                    { q: "The Technical Safeguard", a: "Your memories are irreplaceable. Our studio utilizes a triple-safeguard protocol with redundant cloud backups." },
+                    { q: "Delivery Timeline", a: "Full deliveries are completed within 3 to 6 months. High-resolution teasers are prioritized." },
+                    { q: "Booking & Retainer", a: "A 30% retainer and signed agreement are required to lock your window in our exclusive studio calendar." }
+                  ].map((faq, idx) => (
+                    <div key={idx} className="group border-b border-slate-100 pb-12 last:border-0 font-sans"><div className="flex gap-8 items-start font-sans"><div className="w-12 h-12 rounded-2xl bg-slate-50 text-[#C5A059] flex items-center justify-center shrink-0 font-sans font-black"><HelpCircle size={20} /></div><div className="font-sans font-sans"><h4 className="text-xl font-bold text-slate-950 mb-4 font-serif leading-none">{faq.q}</h4><p className="text-slate-600 leading-relaxed font-medium font-sans">{faq.a}</p></div></div></div>
+                  ))}
                 </div>
               </section>
 
+              {/* Kind Words */}
               <section className="bg-[#fafaf9] py-32 md:py-48 px-8 border-y border-slate-100 font-sans">
-                <div className="max-w-6xl mx-auto">
-                  <div className="text-center mb-24 md:mb-32 font-serif font-black">
-                    <h2 className="text-4xl md:text-6xl italic mb-8 text-slate-950 leading-none">Kind Words</h2>
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}
-                    </div>
-                    <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Trusted by Spark Couples</p>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans font-black font-sans">
-                    {proposalData.reviews.map((review) => (
-                      <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group">
-                        <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-sans font-black" size={80} strokeWidth={0.5} />
-                        <div className="relative z-10 font-sans leading-relaxed">
-                          <p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10 font-serif">"{review.text}"</p>
-                          <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black">
-                            <div className="h-1px w-12 bg-[#C5A059]"></div>
-                            <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none">{review.author}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <div className="max-w-6xl mx-auto"><div className="text-center mb-24 md:mb-32 font-serif font-black"><h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none">Kind Words</h2><div className="flex items-center justify-center gap-2 mb-4">{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}</div><p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Trusted by Spark Couples</p></div><div className="grid md:grid-cols-2 gap-10 md:gap-14 font-sans font-black">
+                  {proposalData.reviews.map((review) => (
+                    <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-sans font-black leading-relaxed"><Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-sans font-black" size={80} strokeWidth={0.5} /><div className="relative z-10 font-sans leading-relaxed"><p className="text-lg md:text-xl text-[#333333] leading-[1.8] italic font-medium mb-10 font-serif">"{review.text}"</p><div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black"><div className="h-1px w-12 bg-[#C5A059]"></div><p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none">{review.author}</p></div></div></div>
+                  ))}
+                </div></div>
               </section>
 
+              {/* Footer */}
               <section className="bg-[#0a0a0a] text-white py-40 md:py-64 px-8 overflow-hidden relative font-sans">
-                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-sans font-black font-sans"></div>
-                <div className="max-w-6xl mx-auto relative z-10 font-sans leading-relaxed font-sans font-black font-sans">
-                  <div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center font-sans">
-                    <div className="text-left leading-relaxed">
-                      <h3 className="text-5xl md:text-8xl mb-12 italic leading-none text-white font-serif">Your Legacy<br/>Starts Here.</h3>
-                      <p className="text-xl md:text-2xl opacity-80 mb-20 font-light leading-relaxed max-w-md text-slate-100 font-sans">The overture of your family's shared history. We are honored to preserve every chapter.</p>
-                      <div className="space-y-16 font-sans">
-                        <div className="flex gap-8 font-sans">
-                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
-                          <div className="font-sans font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-sans font-black">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
-                        </div>
-                        <div className="flex gap-8 font-sans font-black">
-                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black font-sans font-black"><Award size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
-                          <div className="font-sans font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-sans font-black">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all timelines and investment details.</p></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] md:rounded-[6rem] shadow-2xl relative group overflow-hidden font-sans font-black">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125"></div>
-                      <h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none">Vision Call</h4>
-                      <p className="text-slate-600 mb-16 text-lg md:text-2xl leading-relaxed font-medium pr-4 font-sans font-black">To ensure our artistic styles align, we invite you to a brief introductory session.</p>
-                      <button onClick={() => openWhatsAppMsg(`Hi Spark Studios! We'd like to schedule a Vision Call for the ${proposalData.clientName} celebration.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-sans font-black">Connect on WhatsApp <MessageCircle size={20} /></button>
-                    </div>
-                  </div>
-                  <div className="mt-48 md:mt-64 pt-20 border-t border-white/10 text-center font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-sans font-black font-sans font-black font-sans">The Spark Studios &copy; 2026</p></div>
-                </div>
+                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-sans font-black"></div>
+                <div className="max-w-6xl mx-auto relative z-10 font-sans leading-relaxed font-sans font-black"><div className="grid md:grid-cols-2 gap-24 md:gap-48 items-center font-sans"><div className="text-left leading-relaxed">
+                  <h3 className="text-5xl md:text-8xl mb-12 italic leading-none text-white font-serif">Your Legacy<br/>Starts Here.</h3>
+                  <div className="space-y-16 font-sans">
+                    <div className="flex gap-8 font-sans"><div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div><div className="font-sans font-black font-sans"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059]">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div></div>
+                    <div className="flex gap-8 font-sans font-black"><div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-sans font-black font-sans font-black"><Award size={28} className="text-[#C5A059]" strokeWidth={1} /></div><div className="font-sans font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059]">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all investment details.</p></div></div>
+                  </div></div>
+                  <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] md:rounded-[6rem] shadow-2xl relative group overflow-hidden font-sans font-black"><div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125"></div><h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none">Vision Call</h4><p className="text-slate-600 mb-16 text-lg md:text-2xl leading-relaxed font-medium pr-4 font-sans font-black">To ensure our artistic styles align, we invite you to a brief introductory session.</p><button onClick={() => openWhatsAppMsg(`Hi Spark Studios! We'd like to schedule a Vision Call for the ${proposalData.clientName} celebration.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-sans font-black">Connect on WhatsApp <MessageCircle size={20} /></button></div>
+                </div><div className="mt-48 md:mt-64 pt-20 border-t border-white/10 text-center font-black font-sans"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-sans font-black font-sans font-black">The Spark Studios &copy; 2026</p></div></div>
               </section>
             </div>
           )}
