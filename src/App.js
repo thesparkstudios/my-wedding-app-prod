@@ -93,7 +93,7 @@ const App = () => {
           "12x17 Handcrafted Wedding Album",
           "Faux Leather Album Briefcase",
           "Priority Editing",
-          "Custom USB with All Photos & Videosn"
+          "Custom USB with All Photos & Videos",
         ]
       },
       {
@@ -108,9 +108,9 @@ const App = () => {
           "Expanded Production Coverage (Additional Photographer & Videographer for 5 Hours on Any One Event Day)",
           "Upgraded Premium Faux Leather Case",
           "Custom-Designed USB Presentation Case",
-          "Guaranteed 6-Week Digital Delivery"
-          "Instagram Cinematic Teaser"
-          "72-Hour Photo Preview Gallery"
+          "Guaranteed 6-Week Digital Delivery",
+          "Instagram Cinematic Teaser",
+          "72-Hour Photo Preview Gallery",
         ]
       }
     ],
