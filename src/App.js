@@ -316,7 +316,8 @@ const App = () => {
             </div>
             <button onClick={createNew} className="bg-slate-950 text-white px-10 py-5 rounded-full flex items-center gap-3 shadow-xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-800 transition active:scale-95"><Plus size={16} /> New Entry</button>
           </div>
-          <div className="grid gap-6">
+          {/* CENTRALIZED DASHBOARD Logic */}
+          <div className={`grid gap-6 ${savedQuotes.length <= 2 ? 'max-w-3xl mx-auto w-full' : ''}`}>
             {savedQuotes.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map(quote => (
               <div key={quote.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
                 <div className="flex items-center gap-6 font-black font-sans">
@@ -349,7 +350,7 @@ const App = () => {
 
       {view === 'editor' && (
         <div className="max-w-6xl mx-auto py-16 px-6 text-slate-900 pb-48 leading-relaxed font-sans">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-slate-100 pb-10 gap-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-slate-100 pb-10 gap-8 font-sans">
             <div className="flex items-center gap-6">
               <button onClick={() => { setView('dashboard'); window.location.hash = ''; }} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-slate-900 transition"><ArrowLeft size={20} /></button>
               <div><h1 className="text-4xl font-light text-slate-950 font-serif leading-none mb-1">Editor</h1><p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">{currentQuoteId ? `Editing: ${currentQuoteId}` : 'New Narrative'}</p></div>
@@ -375,7 +376,7 @@ const App = () => {
             </section>
 
             <section className="font-sans font-sans">
-              <div className="flex justify-between items-center mb-10 px-4 font-sans font-sans"><h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">02. Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest"><Plus size={14} /> Add Day</button></div>
+              <div className="flex justify-between items-center mb-10 px-4 font-sans font-sans"><h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">02. Itinerary Recaps</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest"><Plus size={14} /> Add Day</button></div>
               <div className="grid md:grid-cols-4 gap-6 font-sans">
                 {proposalData.days.map((day) => (
                   <div key={day.id} className="p-8 bg-white rounded-[2.5rem] border border-slate-100 relative group font-sans">
@@ -393,7 +394,7 @@ const App = () => {
             </section>
 
             <section className="font-sans font-sans">
-              <h2 className="text-xs font-black mb-10 px-4 uppercase tracking-[0.3em] text-slate-400">03. Collections</h2>
+              <h2 className="text-xs font-black mb-10 px-4 uppercase tracking-[0.3em] text-slate-400">03. Digital & Physical Collections</h2>
               <div className="space-y-8 font-sans font-black">
                 {proposalData.packages.map((pkg) => (
                   <div key={pkg.id} className={`p-10 rounded-[3.5rem] border-2 transition-all ${pkg.isVisible ? 'bg-white border-slate-100' : 'bg-slate-50 opacity-50 border-dashed border-slate-200'}`}>
@@ -464,9 +465,9 @@ const App = () => {
                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40 font-black font-black font-black font-black"><div className="w-[1px] h-20 bg-white"></div></div>
               </div>
 
-              {/* Tighter negative space - py-24 instead of py-40 */}
+              {/* SPACING: Reduced from py-40/64 to py-24/32 */}
               <section className="max-w-5xl mx-auto py-24 md:py-32 px-8 text-center leading-relaxed">
-                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-sans font-black mb-10 md:mb-16">The Vision</h2>
+                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-sans font-black mb-10 md:mb-16 font-sans">The Vision</h2>
                 <p className="text-3xl md:text-5xl lg:text-6xl text-[#222222] font-light italic font-serif leading-[1.3]">"{proposalData.visionStatement}"</p>
               </section>
 
@@ -490,15 +491,15 @@ const App = () => {
                     <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950 leading-none italic">The Itinerary</h2>
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black">Documenting the Journey</p>
                   </div>
-                  {/* CENTRALIZED Logic: if 1 day, center it. Otherwise 4 columns. */}
+                  {/* CENTRALIZED Logics for 1 day */}
                   <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black`}>
                     {proposalData.days.map((day) => (
                       <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''}`}>
                         <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 font-black font-black'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
-                        <h4 className="font-black text-[13px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans">{day.label}</h4>
-                        <p className="text-[#121212] text-[16px] font-black mb-4 tracking-widest uppercase font-sans">{day.date}</p>
+                        <h4 className="font-black text-[14px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans">{day.label}</h4>
+                        <p className="text-[#121212] text-[18px] font-black mb-4 tracking-widest uppercase font-sans">{day.date}</p>
                         {/* BIGGER TEXT for ITINERARY DESCRIPTION */}
-                        <p className={`text-2xl md:text-3xl font-serif italic font-medium leading-relaxed font-black`}>{day.desc}</p>
+                        <p className={`text-2xl md:text-3xl font-serif italic font-medium leading-relaxed font-black font-serif`}>{day.desc}</p>
                         {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black text-[11px] text-slate-800 tracking-widest uppercase font-sans font-black leading-none">Continuous Production Team</div>}
                       </div>
                     ))}
@@ -515,7 +516,7 @@ const App = () => {
                   {proposalData.packages.filter(p => p.isVisible).map((item) => (
                     <div key={item.id} className={`relative flex flex-col p-10 md:p-12 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl font-black' : 'bg-white border-slate-100 font-black'}`}>
                       {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase font-sans font-black font-sans font-black font-sans">Recommended</div>}
-                      <div className="mb-14 font-black">
+                      <div className="mb-14 font-black font-serif">
                         <h3 className="text-3xl md:text-4xl font-light mb-6 text-slate-950 font-serif leading-none italic font-black font-black">{item.name} Story</h3>
                         <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter font-black leading-none font-black">{item.price}</div>
                         <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-serif font-medium font-black">{item.description}</p>
@@ -550,9 +551,9 @@ const App = () => {
                       <div className="w-24 h-24 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500 font-black font-sans">{item.icon}</div>
                       <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em] font-sans font-black font-black">{item.step}</span>
                       {/* BIGGER PROCESS TITLE */}
-                      <h4 className="text-3xl font-serif italic mb-6 text-slate-950 font-black font-serif">{item.title}</h4>
+                      <h4 className="text-4xl font-serif italic mb-6 text-slate-950 font-black font-serif">{item.title}</h4>
                       {/* BIGGER PROCESS DESCRIPTION */}
-                      <p className="text-lg leading-relaxed text-slate-500 font-medium px-4 font-black">{item.desc}</p>
+                      <p className="text-xl leading-relaxed text-slate-500 font-medium px-4 font-black">{item.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -597,7 +598,7 @@ const App = () => {
                       <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-black font-sans font-black">
                         <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-black" size={80} strokeWidth={0.5} />
                         <div className="relative z-10 font-black font-sans font-black leading-relaxed font-black">
-                          <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black font-serif">"{review.text}"</p>
+                          <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black font-serif font-black">"{review.text}"</p>
                           <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-sans font-black">
                             <div className="h-1px w-12 bg-[#C5A059] font-black font-black"></div>
                             <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none font-black">{review.author}</p>
