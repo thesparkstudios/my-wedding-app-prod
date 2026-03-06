@@ -74,13 +74,13 @@ const App = () => {
         isVisible: true,
         isHighlighted: false,
         features: [
-          "1 Professional Lead Photographer (3 Days)",
-          "1 Professional Lead Videographer (Days 2 & 3)",
-          "Full Production Team for May 10th",
-          "Cinematic Highlight Film (4K)",
-          "Full-Length Ceremony Documentary",
-          "Curated Fine-Art Digital Gallery",
-          "Aerial Drone Cinematography"
+          "1 Professional Lead Photographer",
+          "1 Professional Lead Videographer",
+          "Cinematic Highlight Film",
+          "Full-Length Edited Documentary",
+          "Unlimited Professionally Edited Photos",
+          "Aerial Drone Cinematography",
+          "Online Digital Gallery"
         ]
       },
       {
@@ -92,10 +92,10 @@ const App = () => {
         isHighlighted: true,
         features: [
           "Everything in Essential",
-          "Two 12x17 Hand-Crafted Wedding Albums",
-          "Italian Leather Album Briefcase",
-          "Priority Post-Production Queue",
-          "Signature USB Archive Collection"
+          "12x17 Handcrafted Wedding Album",
+          "Faux Leather Album Briefcase",
+          "Priority Editing",
+          "Custom USB with All Photos & Videos"
         ]
       },
       {
@@ -107,10 +107,12 @@ const App = () => {
         isHighlighted: false,
         features: [
           "Everything in Signature",
-          "Bespoke Faux Leather USB & Album Suite",
-          "Extended Feature Film (7-10 Minutes)",
-          "Next-Day Cinematic Teaser",
-          "72-Hour Preview Gallery"
+          "Expanded Production Team",
+          "Upgraded Premium Faux Leather Case",
+          "Custom-Designed USB Presentation Case",
+          "Guaranteed 6-Week Digital Delivery",
+          "Instagram Cinematic Teaser",
+          "72-Hour Photo Preview Gallery"
         ]
       }
     ],
