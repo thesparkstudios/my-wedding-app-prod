@@ -33,111 +33,6 @@ const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
 
-const createInitialProposalState = () => ({
-  clientName: "Ayushi & Family",
-  visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
-  heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
-  loomUrl: "",
-  createdAt: Date.now(),
-  views: 0,
-  lastViewedAt: null,
-  days: [
-    { id: 1, label: "Pre-Wedding", date: "April 2026", desc: "Engagement Shoot", icon: "Calendar", highlight: false },
-    { id: 2, label: "May 8th", date: "Friday", desc: "4 Hours Coverage", icon: "Clock", highlight: false },
-    { id: 3, label: "May 9th", date: "Saturday", desc: "4 Hours Photo + Video", icon: "Film", highlight: false },
-    { id: 4, label: "May 10th", date: "Sunday", desc: "Full Day Coverage", icon: "Zap", highlight: true },
-  ],
-  packages: [
-    {
-      id: 1,
-      name: "Essential",
-      price: "$9,650",
-      description: "Artisan digital coverage designed for couples who prioritize high-end cinema and photography.",
-      isVisible: true,
-      isHighlighted: false,
-      features: [
-        "1 Professional Lead Photographer",
-        "1 Professional Lead Videographer",
-        "Cinematic Highlight Film",
-        "Full-Length Edited Documentary",
-        "Unlimited Professionally Edited Photos",
-        "Aerial Drone Cinematography",
-        "Online Digital Gallery"
-      ]
-    },
-    {
-      id: 2,
-      name: "Signature",
-      price: "$11,550",
-      description: "Our most coveted collection, featuring hand-crafted heirlooms to preserve your family legacy.",
-      isVisible: true,
-      isHighlighted: true,
-      features: [
-        "Everything in Essential",
-        "12x17 Handcrafted Wedding Album",
-        "Faux Leather Album Briefcase",
-        "Priority Editing",
-        "Custom USB with All Photos & Videos"
-      ]
-    },
-    {
-      id: 3,
-      name: "Legacy",
-      price: "$13,950",
-      description: "The definitive storytelling experience for those who desire no compromises in detail or delivery.",
-      isVisible: true,
-      isHighlighted: false,
-      features: [
-        "Everything in Signature",
-        "Expanded Production Team",
-        "Upgraded Premium Faux Leather Case",
-        "Custom-Designed USB Presentation Case",
-        "Guaranteed 6-Week Digital Delivery",
-        "Instagram Cinematic Teaser",
-        "72-Hour Photo Preview Gallery"
-      ]
-    }
-  ],
-  reviews: [
-    { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
-    { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." }
-  ],
-  workLinks: [
-    { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
-    { id: 2, title: "Official Studio Portfolio", url: "https://thesparkstudios.ca/portfolio/", note: "Locked Code: SPARK123" }
-  ]
-});
-
-const buildFreshProposalState = (overrides = {}) => {
-  const now = Date.now();
-  const base = createInitialProposalState();
-  return {
-    ...base,
-    ...overrides,
-    createdAt: overrides.createdAt ?? now,
-    updatedAt: overrides.updatedAt ?? now,
-    views: overrides.views ?? 0,
-    lastViewedAt: overrides.lastViewedAt ?? null,
-    days: (overrides.days || base.days).map((day, index) => ({
-      ...day,
-      id: now + index + 1
-    })),
-    packages: (overrides.packages || base.packages).map((pkg, index) => ({
-      ...pkg,
-      id: now + 100 + index,
-      features: [...pkg.features]
-    })),
-    reviews: (overrides.reviews || base.reviews).map((review, index) => ({
-      ...review,
-      id: now + 200 + index
-    })),
-    workLinks: (overrides.workLinks || base.workLinks).map((link, index) => ({
-      ...link,
-      id: now + 300 + index
-    }))
-  };
-};
-
 const App = () => {
   // Logic to bypass password screen if accessing a direct quote link
   const isDirectClientLink = window.location.hash.startsWith('#/quote/');
@@ -155,6 +50,100 @@ const App = () => {
   const [isUnlocked, setIsUnlocked] = useState(isDirectClientLink); 
   const [isAdmin, setIsAdmin] = useState(false); 
   const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const initialProposalState = {
+    clientName: "Ayushi & Family",
+    visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
+    heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
+    loomUrl: "", 
+    createdAt: Date.now(),
+    views: 0,
+    lastViewedAt: null,
+    days: [
+      { id: 1, label: "Pre-Wedding", date: "April 2026", desc: "Engagement Shoot", icon: "Calendar", highlight: false },
+      { id: 2, label: "May 8th", date: "Friday", desc: "4 Hours Coverage", icon: "Clock", highlight: false },
+      { id: 3, label: "May 9th", date: "Saturday", desc: "4 Hours Photo + Video", icon: "Film", highlight: false },
+      { id: 4, label: "May 10th", date: "Sunday", desc: "Full Day Coverage", icon: "Zap", highlight: true },
+    ],
+    packages: [
+      {
+        id: 1,
+        name: "Essential",
+        price: "$9,650",
+        description: "Artisan digital coverage designed for couples who prioritize high-end cinema and photography.",
+        isVisible: true,
+        isHighlighted: false,
+        features: [
+          "1 Professional Lead Photographer",
+          "1 Professional Lead Videographer",
+          "Cinematic Highlight Film",
+          "Full-Length Edited Documentary",
+          "Unlimited Professionally Edited Photos",
+          "Aerial Drone Cinematography",
+          "Online Digital Gallery"
+        ]
+      },
+      {
+        id: 2,
+        name: "Signature",
+        price: "$11,550",
+        description: "Our most coveted collection, featuring hand-crafted heirlooms to preserve your family legacy.",
+        isVisible: true,
+        isHighlighted: true,
+        features: [
+          "Everything in Essential",
+          "12x17 Handcrafted Wedding Album",
+          "Faux Leather Album Briefcase",
+          "Priority Editing",
+          "Custom USB with All Photos & Videos"
+        ]
+      },
+      {
+        id: 3,
+        name: "Legacy",
+        price: "$13,950",
+        description: "The definitive storytelling experience for those who desire no compromises in detail or delivery.",
+        isVisible: true,
+        isHighlighted: false,
+        features: [
+          "Everything in Signature",
+          "Expanded Production Team",
+          "Upgraded Premium Faux Leather Case",
+          "Custom-Designed USB Presentation Case",
+          "Guaranteed 6-Week Digital Delivery",
+          "Instagram Cinematic Teaser",
+          "72-Hour Photo Preview Gallery"
+        ]
+      }
+    ],
+    reviews: [
+      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
+      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." }
+    ],
+    workLinks: [
+      { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
+      { id: 2, title: "Official Studio Portfolio", url: "https://thesparkstudios.ca/portfolio/", note: "Locked Code: SPARK123" }
+    ]
+  };
+
+  const buildFreshProposalState = (overrides = {}) => {
+    const now = Date.now();
+    const base = JSON.parse(JSON.stringify(initialProposalState));
+
+    return {
+      ...base,
+      ...overrides,
+      createdAt: overrides.createdAt ?? now,
+      updatedAt: overrides.updatedAt ?? now,
+      views: overrides.views ?? 0,
+      lastViewedAt: overrides.lastViewedAt ?? null,
+      days: (overrides.days || base.days).map((day, index) => ({ ...day, id: now + index + 1 })),
+      packages: (overrides.packages || base.packages).map((pkg, index) => ({ ...pkg, id: now + 100 + index, features: [...pkg.features] })),
+      reviews: (overrides.reviews || base.reviews).map((review, index) => ({ ...review, id: now + 200 + index })),
+      workLinks: (overrides.workLinks || base.workLinks).map((link, index) => ({ ...link, id: now + 300 + index }))
+    };
+  };
 
   const [proposalData, setProposalData] = useState(() => buildFreshProposalState());
 
@@ -217,21 +206,10 @@ const App = () => {
             if (!isAdmin) {
               await updateDoc(docRef, { views: increment(1), lastViewedAt: Date.now() });
             }
-            setFbError(null);
             setIsUnlocked(true);
             setView('preview');
-          } else {
-            setCurrentQuoteId(null);
-            setProposalData(buildFreshProposalState());
-            setIsExpired(false);
-            setFbError('Quote not found or already deleted.');
-            window.location.hash = '';
-            setView(isAdmin ? 'dashboard' : 'editor');
           }
-        } catch (err) {
-          console.error(err);
-          setFbError('Unable to load quote.');
-        }
+        } catch (err) { console.error(err); }
       }
     };
     if (user) checkHash();
@@ -250,20 +228,92 @@ const App = () => {
     return () => unsubscribe();
   }, [user, isAdmin, view]);
 
+  const slugify = (value = '') => {
+    const slug = value
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\(copy(?:\s+\d+)?\)/gi, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return slug || 'quote';
+  };
+
+  const generateUniqueQuoteId = (name, excludedId = null) => {
+    const existingIds = new Set(savedQuotes.map((quote) => quote.id).filter((id) => id && id !== excludedId));
+    const baseSlug = slugify(name);
+    let candidate = baseSlug;
+    let counter = 2;
+
+    while (existingIds.has(candidate)) {
+      candidate = `${baseSlug}-${counter}`;
+      counter += 1;
+    }
+
+    return candidate;
+  };
+
+  const generateDuplicateClientName = (name = 'Untitled Proposal') => {
+    const trimmedName = name.trim() || 'Untitled Proposal';
+    const match = trimmedName.match(/^(.*?)(?:\s+\(Copy(?:\s+(\d+))?\))$/i);
+
+    if (!match) return `${trimmedName} (Copy)`;
+
+    const rootName = match[1].trim();
+    const nextNumber = match[2] ? Number(match[2]) + 1 : 2;
+    return `${rootName} (Copy ${nextNumber})`;
+  };
+
+  const getQuoteStatus = (quote) => {
+    const created = quote.createdAt || 0;
+    const updated = quote.updatedAt || created;
+    const expiryTime = created + (EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+    if (created && Date.now() > expiryTime) {
+      return { label: 'Expired', className: 'bg-rose-50 text-rose-700 border border-rose-100' };
+    }
+
+    if ((quote.views || 0) > 0 || quote.lastViewedAt) {
+      return { label: 'Viewed', className: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
+    }
+
+    if (Date.now() - updated > (10 * 60 * 1000)) {
+      return { label: 'Sent', className: 'bg-amber-50 text-amber-700 border border-amber-100' };
+    }
+
+    return { label: 'Draft', className: 'bg-slate-100 text-slate-700 border border-slate-200' };
+  };
+
+  const formatDateTime = (timestamp) => {
+    if (!timestamp) return '—';
+
+    return new Date(timestamp).toLocaleString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
   const saveQuote = async () => {
     if (!auth.currentUser) return;
     setIsSaving(true);
-    const id = currentQuoteId || proposalData.clientName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
+    const id = currentQuoteId || generateUniqueQuoteId(proposalData.clientName);
     try {
       const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', id);
-      const payload = { 
-        ...proposalData, id, updatedAt: Date.now(), 
+      const payload = {
+        ...proposalData,
+        id,
+        updatedAt: Date.now(),
         createdAt: proposalData.createdAt || Date.now(),
         views: proposalData.views || 0,
         lastViewedAt: proposalData.lastViewedAt || null
       };
       await setDoc(docRef, payload);
       setCurrentQuoteId(id);
+      setProposalData(payload);
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 3000);
     } catch (err) {
@@ -285,8 +335,8 @@ const App = () => {
         setView('dashboard');
       }
 
-      setFbError(null);
       setDeletingId(null);
+      setFbError(null);
     } catch (err) {
       setFbError("Delete failed.");
     }
@@ -296,11 +346,12 @@ const App = () => {
     if (!auth.currentUser) return;
 
     try {
-      const duplicateId = `${quote.clientName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quote'}-${Math.random().toString(36).substring(2, 7)}`;
+      const duplicateClientName = generateDuplicateClientName(quote.clientName || 'Untitled Proposal');
+      const duplicateId = generateUniqueQuoteId(duplicateClientName, quote.id);
       const duplicatedQuote = buildFreshProposalState({
         ...quote,
         id: duplicateId,
-        clientName: quote.clientName?.includes('(Copy)') ? quote.clientName : `${quote.clientName} (Copy)`,
+        clientName: duplicateClientName,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         views: 0,
@@ -308,7 +359,12 @@ const App = () => {
       });
 
       await setDoc(doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', duplicateId), duplicatedQuote);
+      setProposalData(duplicatedQuote);
+      setCurrentQuoteId(duplicateId);
+      setIsExpired(false);
       setFbError(null);
+      window.location.hash = '';
+      setView('editor');
     } catch (err) {
       setFbError('Duplicate failed.');
     }
@@ -331,6 +387,10 @@ const App = () => {
     return `${Math.floor(diff/86400)}d ago`;
   };
 
+  const filteredQuotes = savedQuotes
+    .filter((quote) => (quote.clientName || '').toLowerCase().includes(searchTerm.toLowerCase().trim()))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
   // State Helpers
   const updateField = (f, v) => setProposalData(prev => ({ ...prev, [f]: v }));
   const updateDay = (id, f, v) => setProposalData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, [f]: v } : d) }));
@@ -340,7 +400,7 @@ const App = () => {
   const updatePackageFeatures = (id, arr) => setProposalData(prev => ({ ...prev, packages: prev.packages.map(p => p.id === id ? { ...p, features: arr } : p) }));
   const updateWorkLink = (id, f, v) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.map(l => l.id === id ? { ...l, [f]: v } : l) }));
   const updateReview = (id, f, v) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.map(r => r.id === id ? { ...r, [f]: v } : r) }));
-  
+
   const createNew = () => {
     window.location.hash = '';
     setCurrentQuoteId(null);
@@ -391,43 +451,74 @@ const App = () => {
 
       {view === 'dashboard' && (
         <div className="max-w-6xl mx-auto py-16 px-6 font-sans">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-8">
             <div>
               <h1 className="text-5xl md:text-7xl font-light text-slate-950 tracking-tight leading-none font-serif mb-4">Proposals</h1>
               <p className="text-slate-500 font-black tracking-widest uppercase text-[11px]">Lead Intelligence Dashboard</p>
             </div>
             <button onClick={createNew} className="bg-slate-950 text-white px-10 py-5 rounded-full flex items-center gap-3 shadow-xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-800 transition active:scale-95"><Plus size={16} /> New Entry</button>
           </div>
-          {/* Dashboard quote list centralization logic */}
-          <div className={`grid gap-6 ${savedQuotes.length <= 2 ? 'max-w-4xl mx-auto w-full' : ''}`}>
-            {savedQuotes.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0)).map(quote => (
-              <div key={quote.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
-                <div className="flex items-center gap-6 font-sans">
-                  <div className="p-4 rounded-3xl bg-slate-50 text-slate-900 shadow-sm"><Calendar size={28} strokeWidth={1.2} /></div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-2xl tracking-tight font-serif leading-none">{quote.clientName}</h3>
-                    <div className="flex gap-4 mt-2">
-                      <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><Eye size={14} className="text-slate-300" /> {quote.views || 0} Views</div>
-                      <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgo(quote.lastViewedAt)}</div>
+
+          <div className="bg-white border border-slate-100 rounded-[2.5rem] p-5 md:p-6 mb-10 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+              <div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.35em] mb-2">Search Portal</p>
+                <h2 className="text-2xl text-slate-900 font-serif leading-none">Find a client quote fast</h2>
+              </div>
+              <div className="w-full md:max-w-md">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by client name"
+                  className="w-full p-4 border border-slate-200 bg-slate-50 rounded-2xl outline-none focus:bg-white focus:ring-1 focus:ring-slate-300 text-sm font-semibold text-slate-800"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={`grid gap-6 ${filteredQuotes.length <= 2 ? 'max-w-4xl mx-auto w-full' : ''}`}>
+            {filteredQuotes.map((quote) => {
+              const status = getQuoteStatus(quote);
+              return (
+                <div key={quote.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
+                  <div className="flex items-start gap-6 font-sans">
+                    <div className="p-4 rounded-3xl bg-slate-50 text-slate-900 shadow-sm"><Calendar size={28} strokeWidth={1.2} /></div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                        <h3 className="font-bold text-slate-900 text-2xl tracking-tight font-serif leading-none">{quote.clientName}</h3>
+                        <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.25em] font-black ${status.className}`}>{status.label}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 mt-2">
+                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><Eye size={14} className="text-slate-300" /> {quote.views || 0} Views</div>
+                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgo(quote.lastViewedAt)}</div>
+                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><RefreshCw size={14} className="text-slate-300" /> Updated: {formatDateTime(quote.updatedAt || quote.createdAt)}</div>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex flex-wrap gap-3 w-full lg:w-auto font-black font-sans">
+                    <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
+                    <button onClick={() => handleDuplicate(quote)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-2"><Copy size={14} /> Duplicate</button>
+                    <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
+                    {deletingId === quote.id ? (
+                      <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in">
+                        <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl"><Check size={16} /></button>
+                        <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl"><XCircle size={16} /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setDeletingId(quote.id)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 transition font-sans font-black"><Trash2 size={18} strokeWidth={1.5} /></button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-3 w-full lg:w-auto font-black font-sans font-black">
-                  <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
-                  <button onClick={() => handleDuplicate(quote)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-2"><Copy size={14} /> Duplicate</button>
-                  <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
-                  {deletingId === quote.id ? (
-                    <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in">
-                      <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl"><Check size={16} /></button>
-                      <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl"><XCircle size={16} /></button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setDeletingId(quote.id)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 transition font-sans font-black"><Trash2 size={18} strokeWidth={1.5} /></button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {filteredQuotes.length === 0 && (
+            <div className="mt-8 bg-white border border-dashed border-slate-200 rounded-[2rem] p-10 text-center text-slate-500 font-semibold">
+              No quotes matched that client name.
+            </div>
+          )}
         </div>
       )}
 
@@ -443,6 +534,7 @@ const App = () => {
                 {isSaving ? <RefreshCw className="h-4 w-4 animate-spin font-sans font-black" /> : copyFeedback ? <Check size={16} /> : <Save size={16} />}
                 {isSaving ? "Syncing..." : currentQuoteId ? "Update Link" : "Save Proposal"}
               </button>
+              {currentQuoteId && <button onClick={() => handleDuplicate(proposalData)} className="flex-1 px-10 py-5 bg-slate-100 text-slate-900 rounded-full flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] shadow-xl font-sans font-black"><Copy size={16} /> Duplicate</button>}
               {currentQuoteId && <button onClick={() => { window.location.hash = `#/quote/${currentQuoteId}`; setView('preview'); }} className="flex-1 px-10 py-5 bg-indigo-600 text-white rounded-full flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] shadow-xl font-sans font-black"><Eye size={16} /> Preview Mode</button>}
             </div>
           </div>
@@ -550,9 +642,9 @@ const App = () => {
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black font-sans font-black">Documenting the Journey</p>
                   </div>
                   {/* CENTRALIZED Layout Logic for Itinerary */}
-                  <div className={`${proposalData.days.length <= 2 ? 'flex flex-wrap justify-center max-w-5xl mx-auto' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black font-sans font-black`}>
+                  <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black font-sans font-black`}>
                     {proposalData.days.map((day) => (
-                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : proposalData.days.length === 2 ? 'w-full max-w-md' : ''} font-black font-sans font-black`}>
+                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''} font-black font-sans font-black`}>
                         <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 font-black font-black font-black font-black'}`}>{IconMap[day.icon] || <Clock size={28} className="font-black font-black font-black font-black" />}</div>
                         <h4 className="font-black text-[15px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans font-black font-sans font-black font-sans">{day.label}</h4>
                         <p className="text-[#121212] text-[18px] font-black mb-4 tracking-widest uppercase font-sans font-black font-sans font-black font-sans">{day.date}</p>
