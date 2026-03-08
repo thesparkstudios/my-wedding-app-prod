@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, increment, deleteDoc } from 'firebase/firestore';
@@ -33,6 +33,111 @@ const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
 
+const createInitialProposalState = () => ({
+  clientName: "Ayushi & Family",
+  visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
+  heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
+  loomUrl: "",
+  createdAt: Date.now(),
+  views: 0,
+  lastViewedAt: null,
+  days: [
+    { id: 1, label: "Pre-Wedding", date: "April 2026", desc: "Engagement Shoot", icon: "Calendar", highlight: false },
+    { id: 2, label: "May 8th", date: "Friday", desc: "4 Hours Coverage", icon: "Clock", highlight: false },
+    { id: 3, label: "May 9th", date: "Saturday", desc: "4 Hours Photo + Video", icon: "Film", highlight: false },
+    { id: 4, label: "May 10th", date: "Sunday", desc: "Full Day Coverage", icon: "Zap", highlight: true },
+  ],
+  packages: [
+    {
+      id: 1,
+      name: "Essential",
+      price: "$9,650",
+      description: "Artisan digital coverage designed for couples who prioritize high-end cinema and photography.",
+      isVisible: true,
+      isHighlighted: false,
+      features: [
+        "1 Professional Lead Photographer",
+        "1 Professional Lead Videographer",
+        "Cinematic Highlight Film",
+        "Full-Length Edited Documentary",
+        "Unlimited Professionally Edited Photos",
+        "Aerial Drone Cinematography",
+        "Online Digital Gallery"
+      ]
+    },
+    {
+      id: 2,
+      name: "Signature",
+      price: "$11,550",
+      description: "Our most coveted collection, featuring hand-crafted heirlooms to preserve your family legacy.",
+      isVisible: true,
+      isHighlighted: true,
+      features: [
+        "Everything in Essential",
+        "12x17 Handcrafted Wedding Album",
+        "Faux Leather Album Briefcase",
+        "Priority Editing",
+        "Custom USB with All Photos & Videos"
+      ]
+    },
+    {
+      id: 3,
+      name: "Legacy",
+      price: "$13,950",
+      description: "The definitive storytelling experience for those who desire no compromises in detail or delivery.",
+      isVisible: true,
+      isHighlighted: false,
+      features: [
+        "Everything in Signature",
+        "Expanded Production Team",
+        "Upgraded Premium Faux Leather Case",
+        "Custom-Designed USB Presentation Case",
+        "Guaranteed 6-Week Digital Delivery",
+        "Instagram Cinematic Teaser",
+        "72-Hour Photo Preview Gallery"
+      ]
+    }
+  ],
+  reviews: [
+    { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
+    { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." }
+  ],
+  workLinks: [
+    { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
+    { id: 2, title: "Official Studio Portfolio", url: "https://thesparkstudios.ca/portfolio/", note: "Locked Code: SPARK123" }
+  ]
+});
+
+const buildFreshProposalState = (overrides = {}) => {
+  const now = Date.now();
+  const base = createInitialProposalState();
+  return {
+    ...base,
+    ...overrides,
+    createdAt: overrides.createdAt ?? now,
+    updatedAt: overrides.updatedAt ?? now,
+    views: overrides.views ?? 0,
+    lastViewedAt: overrides.lastViewedAt ?? null,
+    days: (overrides.days || base.days).map((day, index) => ({
+      ...day,
+      id: now + index + 1
+    })),
+    packages: (overrides.packages || base.packages).map((pkg, index) => ({
+      ...pkg,
+      id: now + 100 + index,
+      features: [...pkg.features]
+    })),
+    reviews: (overrides.reviews || base.reviews).map((review, index) => ({
+      ...review,
+      id: now + 200 + index
+    })),
+    workLinks: (overrides.workLinks || base.workLinks).map((link, index) => ({
+      ...link,
+      id: now + 300 + index
+    }))
+  };
+};
+
 const App = () => {
   // Logic to bypass password screen if accessing a direct quote link
   const isDirectClientLink = window.location.hash.startsWith('#/quote/');
@@ -50,111 +155,6 @@ const App = () => {
   const [isUnlocked, setIsUnlocked] = useState(isDirectClientLink); 
   const [isAdmin, setIsAdmin] = useState(false); 
   const [deletingId, setDeletingId] = useState(null);
-
-  const initialProposalState = useMemo(() => ({
-    clientName: "Ayushi & Family",
-    visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
-    heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
-    loomUrl: "", 
-    createdAt: Date.now(),
-    views: 0,
-    lastViewedAt: null,
-    days: [
-      { id: 1, label: "Pre-Wedding", date: "April 2026", desc: "Engagement Shoot", icon: "Calendar", highlight: false },
-      { id: 2, label: "May 8th", date: "Friday", desc: "4 Hours Coverage", icon: "Clock", highlight: false },
-      { id: 3, label: "May 9th", date: "Saturday", desc: "4 Hours Photo + Video", icon: "Film", highlight: false },
-      { id: 4, label: "May 10th", date: "Sunday", desc: "Full Day Coverage", icon: "Zap", highlight: true },
-    ],
-    packages: [
-      {
-        id: 1,
-        name: "Essential",
-        price: "$9,650",
-        description: "Artisan digital coverage designed for couples who prioritize high-end cinema and photography.",
-        isVisible: true,
-        isHighlighted: false,
-        features: [
-          "1 Professional Lead Photographer",
-          "1 Professional Lead Videographer",
-          "Cinematic Highlight Film",
-          "Full-Length Edited Documentary",
-          "Unlimited Professionally Edited Photos",
-          "Aerial Drone Cinematography",
-          "Online Digital Gallery"
-        ]
-      },
-      {
-        id: 2,
-        name: "Signature",
-        price: "$11,550",
-        description: "Our most coveted collection, featuring hand-crafted heirlooms to preserve your family legacy.",
-        isVisible: true,
-        isHighlighted: true,
-        features: [
-          "Everything in Essential",
-          "12x17 Handcrafted Wedding Album",
-          "Faux Leather Album Briefcase",
-          "Priority Editing",
-          "Custom USB with All Photos & Videos"
-        ]
-      },
-      {
-        id: 3,
-        name: "Legacy",
-        price: "$13,950",
-        description: "The definitive storytelling experience for those who desire no compromises in detail or delivery.",
-        isVisible: true,
-        isHighlighted: false,
-        features: [
-          "Everything in Signature",
-          "Expanded Production Team",
-          "Upgraded Premium Faux Leather Case",
-          "Custom-Designed USB Presentation Case",
-          "Guaranteed 6-Week Digital Delivery",
-          "Instagram Cinematic Teaser",
-          "72-Hour Photo Preview Gallery"
-        ]
-      }
-    ],
-    reviews: [
-      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
-      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." }
-    ],
-    workLinks: [
-      { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
-      { id: 2, title: "Official Studio Portfolio", url: "https://thesparkstudios.ca/portfolio/", note: "Locked Code: SPARK123" }
-    ]
-  }), []);
-
-  const buildFreshProposalState = (overrides = {}) => {
-    const now = Date.now();
-    const base = JSON.parse(JSON.stringify(initialProposalState));
-    return {
-      ...base,
-      ...overrides,
-      createdAt: overrides.createdAt ?? now,
-      updatedAt: overrides.updatedAt ?? now,
-      views: overrides.views ?? 0,
-      lastViewedAt: overrides.lastViewedAt ?? null,
-      days: (overrides.days || base.days).map((day, index) => ({
-        ...day,
-        id: now + index + 1
-      })),
-      packages: (overrides.packages || base.packages).map((pkg, index) => ({
-        ...pkg,
-        id: now + 100 + index,
-        features: [...pkg.features]
-      })),
-      reviews: (overrides.reviews || base.reviews).map((review, index) => ({
-        ...review,
-        id: now + 200 + index
-      })),
-      workLinks: (overrides.workLinks || base.workLinks).map((link, index) => ({
-        ...link,
-        id: now + 300 + index
-      }))
-    };
-  };
 
   const [proposalData, setProposalData] = useState(() => buildFreshProposalState());
 
