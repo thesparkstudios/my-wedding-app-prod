@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, increment, deleteDoc } from 'firebase/firestore';
@@ -51,7 +51,7 @@ const App = () => {
   const [isAdmin, setIsAdmin] = useState(false); 
   const [deletingId, setDeletingId] = useState(null);
 
-  const initialProposalState = useMemo(() => ({
+  const initialProposalState = {
     clientName: "Ayushi & Family",
     visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
     heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
@@ -124,39 +124,9 @@ const App = () => {
       { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
       { id: 2, title: "Official Studio Portfolio", url: "https://thesparkstudios.ca/portfolio/", note: "Locked Code: SPARK123" }
     ]
-  }), []);
-
-  const buildFreshProposalState = (overrides = {}) => {
-    const now = Date.now();
-    const base = JSON.parse(JSON.stringify(initialProposalState));
-    return {
-      ...base,
-      ...overrides,
-      createdAt: overrides.createdAt ?? now,
-      updatedAt: overrides.updatedAt ?? now,
-      views: overrides.views ?? 0,
-      lastViewedAt: overrides.lastViewedAt ?? null,
-      days: (overrides.days || base.days).map((day, index) => ({
-        ...day,
-        id: now + index + 1
-      })),
-      packages: (overrides.packages || base.packages).map((pkg, index) => ({
-        ...pkg,
-        id: now + 100 + index,
-        features: [...pkg.features]
-      })),
-      reviews: (overrides.reviews || base.reviews).map((review, index) => ({
-        ...review,
-        id: now + 200 + index
-      })),
-      workLinks: (overrides.workLinks || base.workLinks).map((link, index) => ({
-        ...link,
-        id: now + 300 + index
-      }))
-    };
   };
 
-  const [proposalData, setProposalData] = useState(() => buildFreshProposalState());
+  const [proposalData, setProposalData] = useState(initialProposalState);
 
   // Browser Tab Title
   useEffect(() => {
@@ -217,21 +187,10 @@ const App = () => {
             if (!isAdmin) {
               await updateDoc(docRef, { views: increment(1), lastViewedAt: Date.now() });
             }
-            setFbError(null);
             setIsUnlocked(true);
             setView('preview');
-          } else {
-            setCurrentQuoteId(null);
-            setProposalData(buildFreshProposalState());
-            setIsExpired(false);
-            setFbError('Quote not found or already deleted.');
-            window.location.hash = '';
-            setView(isAdmin ? 'dashboard' : 'editor');
           }
-        } catch (err) {
-          console.error(err);
-          setFbError('Unable to load quote.');
-        }
+        } catch (err) { console.error(err); }
       }
     };
     if (user) checkHash();
@@ -276,42 +235,8 @@ const App = () => {
   const handleDelete = async (id) => {
     try {
       await deleteDoc(doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', id));
-
-      if (currentQuoteId === id) {
-        window.location.hash = '';
-        setCurrentQuoteId(null);
-        setProposalData(buildFreshProposalState());
-        setIsExpired(false);
-        setView('dashboard');
-      }
-
-      setFbError(null);
       setDeletingId(null);
-    } catch (err) {
-      setFbError("Delete failed.");
-    }
-  };
-
-  const handleDuplicate = async (quote) => {
-    if (!auth.currentUser) return;
-
-    try {
-      const duplicateId = `${quote.clientName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'quote'}-${Math.random().toString(36).substring(2, 7)}`;
-      const duplicatedQuote = buildFreshProposalState({
-        ...quote,
-        id: duplicateId,
-        clientName: quote.clientName?.includes('(Copy)') ? quote.clientName : `${quote.clientName} (Copy)`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        views: 0,
-        lastViewedAt: null
-      });
-
-      await setDoc(doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', duplicateId), duplicatedQuote);
-      setFbError(null);
-    } catch (err) {
-      setFbError('Duplicate failed.');
-    }
+    } catch (err) { setFbError("Delete failed."); }
   };
 
   const handlePortalLogin = () => {
@@ -341,14 +266,7 @@ const App = () => {
   const updateWorkLink = (id, f, v) => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.map(l => l.id === id ? { ...l, [f]: v } : l) }));
   const updateReview = (id, f, v) => setProposalData(prev => ({ ...prev, reviews: prev.reviews.map(r => r.id === id ? { ...r, [f]: v } : r) }));
   
-  const createNew = () => {
-    window.location.hash = '';
-    setCurrentQuoteId(null);
-    setProposalData(buildFreshProposalState());
-    setIsExpired(false);
-    setFbError(null);
-    setView('editor');
-  };
+  const createNew = () => { window.location.hash = ''; setCurrentQuoteId(null); setProposalData({ ...initialProposalState, createdAt: Date.now() }); setView('editor'); };
 
   const IconMap = { Calendar: <Calendar size={18} />, Clock: <Clock size={18} />, Film: <Film size={18} />, Zap: <Zap size={18} />, Camera: <Camera size={18} /> };
 
@@ -412,9 +330,8 @@ const App = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3 w-full lg:w-auto font-black font-sans font-black">
+                <div className="flex gap-3 w-full lg:w-auto font-black font-sans font-black">
                   <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
-                  <button onClick={() => handleDuplicate(quote)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-2"><Copy size={14} /> Duplicate</button>
                   <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
                   {deletingId === quote.id ? (
                     <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in">
@@ -550,9 +467,9 @@ const App = () => {
                     <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black font-sans font-black">Documenting the Journey</p>
                   </div>
                   {/* CENTRALIZED Layout Logic for Itinerary */}
-                  <div className={`${proposalData.days.length <= 2 ? 'flex flex-wrap justify-center max-w-5xl mx-auto' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black font-sans font-black`}>
+                  <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black font-sans font-black`}>
                     {proposalData.days.map((day) => (
-                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : proposalData.days.length === 2 ? 'w-full max-w-md' : ''} font-black font-sans font-black`}>
+                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''} font-black font-sans font-black`}>
                         <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 font-black font-black font-black font-black'}`}>{IconMap[day.icon] || <Clock size={28} className="font-black font-black font-black font-black" />}</div>
                         <h4 className="font-black text-[15px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans font-black font-sans font-black font-sans">{day.label}</h4>
                         <p className="text-[#121212] text-[18px] font-black mb-4 tracking-widest uppercase font-sans font-black font-sans font-black font-sans">{day.date}</p>
