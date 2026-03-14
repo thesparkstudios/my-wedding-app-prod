@@ -10,7 +10,7 @@ import {
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
   Check, Lock, XCircle, MessageCircle, Trash, Star, Quote,
   Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map,
-  LockKeyhole, Sparkles, Youtube, RefreshCw
+  LockKeyhole, Sparkles, Youtube, RefreshCw, FileQuestion
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -44,6 +44,7 @@ const App = () => {
   const [currentQuoteId, setCurrentQuoteId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [quoteExists, setQuoteExists] = useState(true); // FIX: Track if quote exists
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [fbError, setFbError] = useState(null);
   const [passInput, setPassInput] = useState('');
@@ -201,11 +202,17 @@ const App = () => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setProposalData(data);
+            setQuoteExists(true); // FIX: Data found
             const created = data.createdAt || Date.now();
             setIsExpired(Date.now() > created + (EXPIRY_DAYS * 24 * 60 * 60 * 1000));
             if (!isAdmin) {
               await updateDoc(docRef, { views: increment(1), lastViewedAt: Date.now() });
             }
+            setIsUnlocked(true);
+            setView('preview');
+          } else {
+            // FIX: Data NOT found (Deleted or wrong ID)
+            setQuoteExists(false);
             setIsUnlocked(true);
             setView('preview');
           }
@@ -424,7 +431,14 @@ const App = () => {
           <div className="w-20 h-20 bg-slate-50 text-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-10 border border-slate-100 shadow-sm"><Lock size={32} strokeWidth={1.5} /></div>
           <h2 className="text-3xl font-light mb-2 text-slate-950 uppercase font-serif">Spark Portal</h2>
           <p className="text-slate-400 text-[10px] mb-10 tracking-[0.3em] uppercase font-sans font-black">Internal Studio Access</p>
-          <input type="password" placeholder="KEY CODE" className="w-full p-4 border border-slate-200 bg-slate-50 rounded-2xl mb-6 text-center outline-none focus:ring-1 focus:ring-slate-300 font-sans font-black tracking-[0.4em]" value={passInput} onChange={(e) => setPassInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handlePortalLogin()} />
+          <input 
+            type="password" 
+            placeholder="KEY CODE" 
+            className="w-full p-4 border border-slate-200 bg-slate-50 rounded-2xl mb-6 text-center outline-none focus:ring-1 focus:ring-slate-300 font-sans font-black tracking-[0.4em]" 
+            value={passInput} 
+            onChange={(e) => setPassInput(e.target.value)} 
+            onKeyDown={(e) => e.key === 'Enter' && handlePortalLogin()} 
+          />
           <button onClick={handlePortalLogin} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold hover:bg-slate-800 transition-all uppercase tracking-widest text-xs active:scale-95 font-sans font-black">Open Portal</button>
         </div>
       </div>
@@ -594,7 +608,17 @@ const App = () => {
 
       {view === 'preview' && (
         <div className="min-h-screen bg-white relative selection:bg-[#C5A059]/20 font-sans leading-relaxed">
-          {isExpired ? (
+          {/* FIX: Check if quote exists first */}
+          {!quoteExists ? (
+            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-black font-sans">
+              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-black">
+                <div className="w-20 h-20 bg-slate-50 text-slate-400 rounded-3xl flex items-center justify-center mx-auto mb-10"><FileQuestion size={40} strokeWidth={1} /></div>
+                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif font-black">Link Not Found</h1>
+                <p className="text-slate-500 mb-10 font-medium">This proposal link has been removed or is no longer available in our system.</p>
+                <button onClick={() => openWhatsApp(`Hi! I'm trying to access a proposal link but it says it's not found.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black">Contact Studio</button>
+              </div>
+            </div>
+          ) : isExpired ? (
             <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-black font-sans font-black">
               <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-black">
                 <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><AlertCircle size={40} strokeWidth={1} /></div>
@@ -751,7 +775,7 @@ const App = () => {
                   <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-black font-sans font-black font-black font-black font-black font-sans font-black font-black font-black font-black font-sans font-black font-black">
                     {proposalData.reviews.map((review) => (
                       <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black">
-                        <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" size={80} strokeWidth={0.5} />
+                        <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" size={80} strokeWidth={0.5} />
                         <div className="relative z-10 font-black font-sans font-black leading-relaxed font-black font-black font-sans font-black leading-relaxed font-black font-black font-sans font-black leading-relaxed font-black font-black font-sans font-black leading-relaxed">
                           <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif">"{review.text}"</p>
                           <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black">
@@ -772,9 +796,9 @@ const App = () => {
                     <div className="text-left leading-relaxed font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
                       <h3 className="text-6xl md:text-8xl mb-12 italic leading-none text-white font-serif font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Your Legacy Starts Here.</h3>
                       <div className="space-y-12 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
-                        <div className="flex gap-8 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                        <div className="flex gap-8 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
                           <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><Clock size={28} className="text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" strokeWidth={1} /></div>
-                          <div className="font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
+                          <div className="font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
                         </div>
                         <div className="flex gap-8 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
                           <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><Award size={28} className="text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" strokeWidth={1} /></div>
