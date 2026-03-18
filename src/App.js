@@ -10,7 +10,7 @@ import {
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
   Check, Lock, XCircle, MessageCircle, Trash, Star, Quote,
   Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map,
-  LockKeyhole, Sparkles, Youtube, RefreshCw
+  LockKeyhole, Sparkles, Youtube, RefreshCw, Power, ExternalLink
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -54,10 +54,13 @@ const App = () => {
   const [videoStarted, setVideoStarted] = useState(false);
 
   const initialProposalState = {
+    isActive: true, // Added for disabling quotes
     clientName: "Ayushi & Family",
     visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
     heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
     loomUrl: "", 
+    showVideoInvite: true, // Control for video invite text
+    videoInviteText: "Hey Ayushi, watch this first", // Custom invite text
     createdAt: Date.now(),
     views: 0,
     lastViewedAt: null,
@@ -197,6 +200,15 @@ const App = () => {
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            // Check if quote is disabled
+            if (data.isActive === false && !isAdmin) {
+              setNotFound(true);
+              setIsUnlocked(true);
+              setView('preview');
+              return;
+            }
+
             setProposalData(data);
             setNotFound(false); 
             const created = data.createdAt || Date.now();
@@ -228,6 +240,15 @@ const App = () => {
     }, (err) => { setFbError("Rules denied."); });
     return () => unsubscribe();
   }, [user, isAdmin, view]);
+
+  const toggleQuoteActive = async (quoteId, currentStatus) => {
+    try {
+      const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', quoteId);
+      await updateDoc(docRef, { isActive: !currentStatus });
+    } catch (err) {
+      setFbError("Update failed.");
+    }
+  };
 
   const slugify = (value = '') => {
     const slug = value
@@ -267,6 +288,10 @@ const App = () => {
   };
 
   const getQuoteStatus = (quote) => {
+    if (quote.isActive === false) {
+      return { label: 'Inactive', className: 'bg-slate-200 text-slate-500 border border-slate-300' };
+    }
+    
     const created = quote.createdAt || 0;
     const updated = quote.updatedAt || created;
     const expiryTime = created + (EXPIRY_DAYS * 24 * 60 * 60 * 1000);
@@ -507,7 +532,9 @@ const App = () => {
               return (
                 <div key={quote.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
                   <div className="flex items-start gap-6 font-sans">
-                    <div className="p-4 rounded-3xl bg-slate-50 text-slate-900 shadow-sm"><Calendar size={28} strokeWidth={1.2} /></div>
+                    <div className="p-4 rounded-3xl bg-slate-50 text-slate-900 shadow-sm">
+                      <Calendar size={28} strokeWidth={1.2} />
+                    </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-3 mb-3">
                         <h3 className="font-bold text-slate-900 text-2xl tracking-tight font-serif leading-none">{quote.clientName}</h3>
@@ -521,9 +548,26 @@ const App = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3 w-full lg:w-auto font-black font-sans">
+                    {/* ACTIVE/INACTIVE TOGGLE */}
+                    <button 
+                      onClick={() => toggleQuoteActive(quote.id, quote.isActive !== false)}
+                      className={`flex-1 md:flex-none p-4 rounded-2xl transition flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest ${quote.isActive !== false ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
+                      title={quote.isActive !== false ? "Click to Disable" : "Click to Enable"}
+                    >
+                      <Power size={14} /> {quote.isActive !== false ? 'Live' : 'Off'}
+                    </button>
+
                     <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
                     <button onClick={() => handleDuplicate(quote)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-2"><Copy size={14} /> Duplicate</button>
-                    <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = `#/quote/${quote.id}`; setView('preview'); }} className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95">Preview</button>
+                    
+                    {/* OPEN IN NEW TAB */}
+                    <button 
+                      onClick={() => window.open(`${window.location.origin}${window.location.pathname}#/quote/${quote.id}`, '_blank')} 
+                      className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      Preview <ExternalLink size={14} />
+                    </button>
+
                     {deletingId === quote.id ? (
                       <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in">
                         <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl"><Check size={16} /></button>
@@ -570,6 +614,28 @@ const App = () => {
                 <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Client Name</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl outline-none focus:bg-white font-bold text-slate-900 text-lg font-sans font-black" /></div>
                 <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Hero Image URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs font-black" /></div>
                 <div className="flex flex-col gap-2 mt-4 font-sans font-black font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Loom Embed URL</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs font-black" /></div>
+                
+                {/* VIDEO INVITE SETTINGS */}
+                <div className="flex flex-col gap-2 mt-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Video Invite Text</label>
+                        <button 
+                            onClick={() => updateField('showVideoInvite', !proposalData.showVideoInvite)}
+                            className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${proposalData.showVideoInvite ? 'bg-[#C5A059] text-white shadow-md' : 'bg-slate-200 text-slate-400'}`}
+                        >
+                            {proposalData.showVideoInvite ? 'Enabled' : 'Disabled'}
+                        </button>
+                    </div>
+                    <input 
+                        type="text" 
+                        disabled={!proposalData.showVideoInvite}
+                        value={proposalData.videoInviteText} 
+                        onChange={(e) => updateField('videoInviteText', e.target.value)} 
+                        className={`p-4 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:bg-white transition-all ${!proposalData.showVideoInvite ? 'opacity-50 grayscale' : 'bg-white'}`} 
+                        placeholder="e.g. Hey Ayushi, watch this first"
+                    />
+                </div>
+
                 <div className="md:col-span-2 flex flex-col gap-2 mt-4 font-sans font-black font-sans font-black font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-black">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50 rounded-2xl italic resize-none font-medium text-slate-700 font-sans font-black font-sans font-black" /></div>
               </div>
             </section>
@@ -687,6 +753,16 @@ const App = () => {
                   {/* Decorative Background for the Video Cover */}
                   {!videoStarted && <img src={proposalData.heroImage} className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale-[40%]" alt="Video Cover" />}
                 </div>
+
+                {/* DYNAMIC VIDEO INVITE TEXT */}
+                {proposalData.showVideoInvite && proposalData.videoInviteText && (
+                    <div className="mt-8 text-center animate-in fade-in slide-in-from-top-4 duration-1000">
+                        <p className="text-xl md:text-2xl font-serif italic text-slate-800 tracking-tight">
+                            {proposalData.videoInviteText}
+                        </p>
+                        <div className="w-12 h-[1px] bg-[#C5A059]/30 mx-auto mt-4"></div>
+                    </div>
+                )}
               </section>
 
               <section className="bg-[#fcfcfb] py-24 md:py-32 px-8 border-y border-slate-100 leading-normal">
