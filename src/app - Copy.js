@@ -10,7 +10,7 @@ import {
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
   Check, Lock, XCircle, MessageCircle, Trash, Star, Quote,
   Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map,
-  LockKeyhole, Sparkles, Youtube, RefreshCw
+  LockKeyhole, Sparkles, Youtube, RefreshCw, FileQuestion
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -34,6 +34,7 @@ const EXPIRY_DAYS = 30;
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
 
 const App = () => {
+  // Logic to bypass password screen if accessing a direct quote link
   const isDirectClientLink = window.location.hash.startsWith('#/quote/');
   
   const [view, setView] = useState(isDirectClientLink ? 'preview' : 'dashboard'); 
@@ -43,7 +44,7 @@ const App = () => {
   const [currentQuoteId, setCurrentQuoteId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
-  const [notFound, setNotFound] = useState(false); 
+  const [quoteExists, setQuoteExists] = useState(true); // FIX: Track if quote exists
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [fbError, setFbError] = useState(null);
   const [passInput, setPassInput] = useState('');
@@ -51,7 +52,6 @@ const App = () => {
   const [isAdmin, setIsAdmin] = useState(false); 
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [videoStarted, setVideoStarted] = useState(false);
 
   const initialProposalState = {
     clientName: "Ayushi & Family",
@@ -148,6 +148,7 @@ const App = () => {
 
   const [proposalData, setProposalData] = useState(() => buildFreshProposalState());
 
+  // Browser Tab Title
   useEffect(() => {
     if (view === 'preview' && proposalData.clientName) {
       document.title = `The Spark Studios | Proposal for ${proposalData.clientName}`;
@@ -158,11 +159,13 @@ const App = () => {
     }
   }, [view, proposalData.clientName]);
 
+  // WhatsApp helper
   const openWhatsApp = (msg) => {
     const encoded = encodeURIComponent(msg);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
   };
 
+  // Auth
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -183,6 +186,7 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
+  // Fetch Logic
   useEffect(() => {
     const checkHash = async () => {
       const hash = window.location.hash;
@@ -198,7 +202,7 @@ const App = () => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setProposalData(data);
-            setNotFound(false); 
+            setQuoteExists(true); // FIX: Data found
             const created = data.createdAt || Date.now();
             setIsExpired(Date.now() > created + (EXPIRY_DAYS * 24 * 60 * 60 * 1000));
             if (!isAdmin) {
@@ -207,8 +211,9 @@ const App = () => {
             setIsUnlocked(true);
             setView('preview');
           } else {
-            setNotFound(true); 
-            setIsUnlocked(true); 
+            // FIX: Data NOT found (Deleted or wrong ID)
+            setQuoteExists(false);
+            setIsUnlocked(true);
             setView('preview');
           }
         } catch (err) { console.error(err); }
@@ -219,6 +224,7 @@ const App = () => {
     return () => window.removeEventListener('hashchange', checkHash);
   }, [user, isAdmin, view, currentQuoteId]); 
 
+  // Dashboard Sync
   useEffect(() => {
     if (!user || !isAdmin || view === 'preview') return;
     const q = collection(db, 'artifacts', finalAppId, 'public', 'data', 'quotes');
@@ -333,7 +339,6 @@ const App = () => {
         setCurrentQuoteId(null);
         setProposalData(buildFreshProposalState());
         setIsExpired(false);
-        setNotFound(false);
         setView('dashboard');
       }
 
@@ -364,7 +369,6 @@ const App = () => {
       setProposalData(duplicatedQuote);
       setCurrentQuoteId(duplicateId);
       setIsExpired(false);
-      setNotFound(false);
       setFbError(null);
       window.location.hash = '';
       setView('editor');
@@ -394,6 +398,7 @@ const App = () => {
     .filter((quote) => (quote.clientName || '').toLowerCase().includes(searchTerm.toLowerCase().trim()))
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
+  // State Helpers
   const updateField = (f, v) => setProposalData(prev => ({ ...prev, [f]: v }));
   const updateDay = (id, f, v) => setProposalData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, [f]: v } : d) }));
   const addDay = () => setProposalData(prev => ({ ...prev, days: [...prev.days, { id: Date.now(), label: "New Day", date: "Date", desc: "Service Details", icon: "Clock", highlight: false }] }));
@@ -408,7 +413,6 @@ const App = () => {
     setCurrentQuoteId(null);
     setProposalData(buildFreshProposalState());
     setIsExpired(false);
-    setNotFound(false);
     setFbError(null);
     setView('editor');
   };
@@ -433,12 +437,7 @@ const App = () => {
             className="w-full p-4 border border-slate-200 bg-slate-50 rounded-2xl mb-6 text-center outline-none focus:ring-1 focus:ring-slate-300 font-sans font-black tracking-[0.4em]" 
             value={passInput} 
             onChange={(e) => setPassInput(e.target.value)} 
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handlePortalLogin();
-              }
-            }} 
+            onKeyDown={(e) => e.key === 'Enter' && handlePortalLogin()} 
           />
           <button onClick={handlePortalLogin} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold hover:bg-slate-800 transition-all uppercase tracking-widest text-xs active:scale-95 font-sans font-black">Open Portal</button>
         </div>
@@ -456,15 +455,6 @@ const App = () => {
         .font-sans { font-family: 'Montserrat', sans-serif !important; }
         body { font-family: 'Montserrat', sans-serif; -webkit-font-smoothing: antialiased; }
         h1, h2, h3, h4 { font-family: 'Cormorant Garamond', serif !important; }
-        
-        @keyframes pulse-gold {
-          0% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0.4); }
-          70% { box-shadow: 0 0 0 20px rgba(197, 160, 89, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0); }
-        }
-        .animate-pulse-gold {
-          animation: pulse-gold 2s infinite;
-        }
       `}</style>
 
       {fbError && view !== 'preview' && (
@@ -618,13 +608,14 @@ const App = () => {
 
       {view === 'preview' && (
         <div className="min-h-screen bg-white relative selection:bg-[#C5A059]/20 font-sans leading-relaxed">
-          {notFound ? (
-            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans">
-              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100">
-                <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><XCircle size={40} strokeWidth={1} /></div>
-                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif">Proposal Not Found</h1>
-                <p className="text-slate-500 mb-10 font-medium">The proposal you are looking for has been removed or the link is incorrect.</p>
-                <button onClick={() => { window.location.hash = ''; setView('dashboard'); }} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-sans">Return to Portal</button>
+          {/* FIX: Check if quote exists first */}
+          {!quoteExists ? (
+            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-black font-sans">
+              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-black">
+                <div className="w-20 h-20 bg-slate-50 text-slate-400 rounded-3xl flex items-center justify-center mx-auto mb-10"><FileQuestion size={40} strokeWidth={1} /></div>
+                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif font-black">Link Not Found</h1>
+                <p className="text-slate-500 mb-10 font-medium">This proposal link has been removed or is no longer available in our system.</p>
+                <button onClick={() => openWhatsApp(`Hi! I'm trying to access a proposal link but it says it's not found.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black">Contact Studio</button>
               </div>
             </div>
           ) : isExpired ? (
@@ -637,149 +628,134 @@ const App = () => {
               </div>
             </div>
           ) : (
-            <div className="font-sans">
+            <div className="font-sans font-sans font-sans font-sans font-sans">
               <div className="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden bg-[#0d0d0d]">
-                <div className="absolute inset-0 opacity-60"><img src={proposalData.heroImage} className="w-full h-full object-cover transform scale-105" alt="Hero" /></div>
-                <div className="relative z-10 text-center text-white px-8">
-                  <img src={LOGO_URL} alt="Spark" className="mx-auto h-12 md:h-20 mb-10 object-contain drop-shadow-xl" />
-                  <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] mb-12 font-serif font-light italic leading-none">{proposalData.clientName}</h1>
-                  <div className="max-w-lg mx-auto border-t border-white/20 pt-12"><p className="text-sm md:text-xl font-light tracking-[0.2em] uppercase opacity-90 font-black">Bespoke Cinematic Narrative</p></div>
+                <div className="absolute inset-0 opacity-60 font-sans font-sans"><img src={proposalData.heroImage} className="w-full h-full object-cover transform scale-105 font-sans font-sans" alt="Hero" /></div>
+                <div className="relative z-10 text-center text-white px-8 font-sans font-sans">
+                  <img src={LOGO_URL} alt="Spark" className="mx-auto h-12 md:h-20 mb-10 object-contain drop-shadow-xl font-black font-sans font-black font-sans" />
+                  <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] mb-12 font-serif font-light italic leading-none font-serif font-serif font-serif">{proposalData.clientName}</h1>
+                  <div className="max-w-lg mx-auto border-t border-white/20 pt-12 font-sans font-black font-sans font-black font-sans font-black"><p className="text-sm md:text-xl font-light tracking-[0.2em] uppercase opacity-90 font-black font-black font-black">Bespoke Cinematic Narrative</p></div>
                 </div>
-                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40"><div className="w-[1px] h-20 bg-white"></div></div>
+                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40 font-black font-black font-black font-black font-black font-black font-black font-black"><div className="w-[1px] h-20 bg-white font-black font-black font-black font-black font-black font-black font-black"></div></div>
               </div>
 
-              <section className="max-w-5xl mx-auto py-24 md:py-32 px-8 text-center leading-relaxed">
-                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-black mb-10 md:mb-16">The Vision</h2>
-                <p className="text-3xl md:text-5xl lg:text-6xl text-[#222222] font-light italic font-serif leading-[1.3]">"{proposalData.visionStatement}"</p>
+              {/* Tighter Spacing py-24 */}
+              <section className="max-w-5xl mx-auto py-24 md:py-32 px-8 text-center leading-relaxed font-sans font-sans">
+                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-sans font-black mb-10 md:mb-16 font-sans font-sans">The Vision</h2>
+                <p className="text-3xl md:text-5xl lg:text-6xl text-[#222222] font-light italic font-serif leading-[1.3] font-serif font-serif font-serif">"{proposalData.visionStatement}"</p>
               </section>
 
-              {/* ENHANCED LOOM SECTION */}
-              <section className="max-w-6xl mx-auto pb-24 md:pb-32 px-8">
-                <div className="relative aspect-video bg-slate-900 rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl group cursor-pointer transition-all duration-500 hover:scale-[1.01]">
-                   {(!videoStarted && proposalData.loomUrl) ? (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-8 bg-black/40 backdrop-blur-[2px]" onClick={() => setVideoStarted(true)}>
-                        <div className="absolute top-8 left-8 flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                            <Sparkles size={14} className="text-[#C5A059]" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Personal Video Guide</span>
-                        </div>
-                        
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-[#C5A059]/30 rounded-full blur-2xl group-hover:bg-[#C5A059]/50 transition-all"></div>
-                            <button className="relative w-24 h-24 md:w-32 md:h-32 bg-white rounded-full flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-110 animate-pulse-gold">
-                                <Play size={40} fill="#121212" strokeWidth={0} className="ml-2" />
-                            </button>
-                        </div>
-                        
-                        <div className="mt-10 max-w-sm">
-                            <h4 className="text-2xl md:text-4xl text-white font-serif italic mb-4 leading-tight">A short message for {proposalData.clientName.split('&')[0]}</h4>
-                            <p className="text-[10px] text-white/70 font-black tracking-[0.4em] uppercase leading-relaxed">Waqar walks you through your custom vision</p>
-                        </div>
-                    </div>
-                  ) : proposalData.loomUrl ? (
-                    <iframe title="Loom" src={proposalData.loomUrl.replace("loom.com/share", "loom.com/embed") + "?autoplay=1"} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
+              <section className="max-w-6xl mx-auto pb-24 md:pb-32 px-8 font-sans font-sans font-sans">
+                <div className="relative aspect-video bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center overflow-hidden shadow-inner font-sans font-sans font-sans">
+                  {proposalData.loomUrl ? (
+                    <iframe title="Loom" src={proposalData.loomUrl.replace("loom.com/share", "loom.com/embed")} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full font-sans font-sans font-sans"></iframe>
                   ) : (
-                    <div className="p-10 text-center flex flex-col items-center justify-center h-full">
-                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059]"><Play size={32} fill="currentColor" strokeWidth={0} /></div>
-                      <h4 className="text-2xl font-light mb-4 text-slate-900 font-serif leading-none">Personal Message</h4>
-                      <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Cinematic Intro Coming Soon</p>
+                    <div className="font-sans p-10 text-center font-black font-sans font-black font-sans">
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059] font-black font-sans font-black font-sans"><Play size={32} fill="currentColor" strokeWidth={0} className="font-black font-sans font-black font-sans" /></div>
+                      <h4 className="text-2xl font-light mb-4 text-slate-900 font-serif leading-none font-black font-sans font-black font-sans">Personal Message</h4>
+                      <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-sans font-sans">Cinematic Intro Coming Soon</p>
                     </div>
                   )}
-                  {/* Decorative Background for the Video Cover */}
-                  {!videoStarted && <img src={proposalData.heroImage} className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale-[40%]" alt="Video Cover" />}
                 </div>
               </section>
 
-              <section className="bg-[#fcfcfb] py-24 md:py-32 px-8 border-y border-slate-100 leading-normal">
-                <div className="max-w-7xl mx-auto">
-                  <div className="text-center mb-16 md:mb-24">
-                    <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950 leading-none italic font-serif">The Itinerary</h2>
-                    <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Documenting the Journey</p>
+              <section className="bg-[#fcfcfb] py-24 md:py-32 px-8 border-y border-slate-100 leading-normal font-sans font-sans">
+                <div className="max-w-7xl mx-auto font-sans font-sans">
+                  <div className="text-center mb-16 md:mb-24 font-serif font-black font-black font-black font-black">
+                    <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950 leading-none italic font-black font-serif font-black font-serif">The Itinerary</h2>
+                    <p className="text-[11px] font-sans font-black text-slate-400 tracking-[0.5em] uppercase font-sans font-black font-sans font-black">Documenting the Journey</p>
                   </div>
-                  <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8`}>
+                  {/* CENTRALIZED Layout Logic for Itinerary */}
+                  <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8 font-black font-sans font-black`}>
                     {proposalData.days.map((day) => (
-                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''}`}>
-                        <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
-                        <h4 className="font-black text-[15px] uppercase tracking-[0.4em] text-[#C5A059] mb-4">{day.label}</h4>
-                        <p className="text-[#121212] text-[18px] font-black mb-4 tracking-widest uppercase">{day.date}</p>
-                        <p className={`text-2xl md:text-3xl font-serif italic font-medium leading-relaxed`}>{day.desc}</p>
-                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black text-[11px] text-slate-800 tracking-widest uppercase leading-none">Continuous Production Team</div>}
+                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''} font-black font-sans font-black`}>
+                        <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 font-black font-black font-black font-black'}`}>{IconMap[day.icon] || <Clock size={28} className="font-black font-black font-black font-black" />}</div>
+                        <h4 className="font-black text-[15px] uppercase tracking-[0.4em] text-[#C5A059] mb-4 font-black font-sans font-black font-sans font-black font-sans">{day.label}</h4>
+                        <p className="text-[#121212] text-[18px] font-black mb-4 tracking-widest uppercase font-sans font-black font-sans font-black font-sans">{day.date}</p>
+                        {/* BIGGER TEXT for ITINERARY DESCRIPTION */}
+                        <p className={`text-2xl md:text-3xl font-serif italic font-medium leading-relaxed font-black font-serif font-black font-serif font-black font-serif`}>{day.desc}</p>
+                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black text-[11px] text-slate-800 tracking-widest uppercase font-sans font-black leading-none font-sans font-black leading-none">Continuous Production Team</div>}
                       </div>
                     ))}
                   </div>
                 </div>
               </section>
 
-              <section className="max-w-[1440px] mx-auto py-24 md:py-32 px-8">
-                <div className="text-center mb-24 md:mb-32">
-                  <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none italic font-serif">The Collections</h2>
-                  <div className="flex items-center justify-center gap-10 text-[11px] font-black text-slate-400 tracking-[0.6em] uppercase leading-none"><div className="h-[1px] w-12 bg-slate-200"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200"></div></div>
+              <section className="max-w-[1440px] mx-auto py-24 md:py-32 px-8 font-serif font-black font-serif font-black">
+                <div className="text-center mb-24 md:mb-32 font-serif font-black font-black font-black font-black font-black font-black">
+                  <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none italic font-serif font-serif font-serif font-serif">The Collections</h2>
+                  <div className="flex items-center justify-center gap-10 text-[11px] font-sans font-black text-slate-400 tracking-[0.6em] uppercase leading-none font-black font-sans font-black font-sans font-black"><div className="h-[1px] w-12 bg-slate-200 font-black font-black font-black font-black"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200 font-black font-black font-black font-black"></div></div>
                 </div>
-                <div className={`grid gap-10 items-stretch justify-center font-black ${
+                {/* CENTRALIZED PACKAGES Logic for 1, 2, or 3 entries */}
+                <div className={`grid gap-10 items-stretch justify-center font-sans font-black ${
                   proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto grid-cols-1' : 
                   proposalData.packages.filter(p => p.isVisible).length === 2 ? 'max-w-5xl mx-auto grid-cols-1 md:grid-cols-2' : 
                   'lg:grid-cols-3 max-w-full'
                 }`}>
                   {proposalData.packages.filter(p => p.isVisible).map((item) => (
-                    <div key={item.id} className={`relative flex flex-col p-10 md:p-12 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl' : 'bg-white border-slate-100'}`}>
-                      {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase">Recommended</div>}
-                      <div className="mb-14">
-                        <h3 className="text-3xl md:text-4xl font-light mb-6 text-slate-950 font-serif leading-none italic">{item.name} Story</h3>
-                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter font-black leading-none">{item.price}</div>
-                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-serif font-medium">{item.description}</p>
+                    <div key={item.id} className={`relative flex flex-col p-10 md:p-12 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl font-black font-black font-black' : 'bg-white border-slate-100 font-black font-black font-black'}`}>
+                      {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase font-sans font-black font-sans font-black font-sans font-black font-sans">Recommended</div>}
+                      <div className="mb-14 font-black font-serif font-black font-serif">
+                        <h3 className="text-3xl md:text-4xl font-light mb-6 text-slate-950 font-serif leading-none italic font-black font-black font-black font-black">{item.name} Story</h3>
+                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter font-black leading-none font-black font-black font-black font-black">{item.price}</div>
+                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-serif font-medium font-black font-black font-black font-black">{item.description}</p>
                       </div>
-                      <div className="flex-grow space-y-7 mb-16 border-t border-slate-50 pt-16 font-black">
+                      <div className="flex-grow space-y-7 mb-16 border-t border-slate-50 pt-16 font-black font-sans font-black font-sans">
                         {item.features.filter(f => f.trim() !== "").map((feature, fIdx) => (
-                          <div key={fIdx} className="flex items-start gap-5 font-black">
-                            <div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300'}`}><CheckCircle size={22} strokeWidth={1.5} /></div>
-                            <span className="text-base md:text-lg text-[#333333] tracking-tight font-medium">{feature}</span>
+                          <div key={fIdx} className="flex items-start gap-5 font-black font-sans font-black font-black font-black font-sans font-black font-black">
+                            <div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300 font-black font-black font-black'}`}><CheckCircle size={22} strokeWidth={1.5} className="font-black font-black font-black font-black" /></div>
+                            <span className="text-base md:text-lg text-[#333333] tracking-tight font-medium font-sans font-black font-sans font-black">{feature}</span>
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => openWhatsApp(`Hi Waqar! I'd like to book the ${item.name} Story.`)} className="w-full py-8 rounded-[2.5rem] font-black text-[11px] tracking-[0.5em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] transition-all">Inquire Selection <MessageCircle size={20} className="inline-block ml-2" /></button>
+                      <button onClick={() => openWhatsApp(`Hi Waqar! I'd like to book the ${item.name} Story.`)} className="w-full py-8 rounded-[2.5rem] font-black text-[11px] tracking-[0.5em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] transition-all font-black font-sans font-black font-sans font-black font-sans">Inquire Selection <MessageCircle size={20} className="font-sans font-black font-sans font-black" /></button>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="max-w-6xl mx-auto py-24 md:py-32 px-8">
-                <div className="text-center mb-16 md:mb-24">
-                  <h2 className="text-4xl md:text-6xl font-light mb-8 leading-none italic font-serif">The Process</h2>
-                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">A Sequence of Excellence</p>
+              {/* BIGGER PROCESS STEPS + TIRED TEXT */}
+              <section className="max-w-6xl mx-auto py-24 md:py-32 px-8 font-sans font-black font-sans font-black">
+                <div className="text-center mb-16 md:mb-24 font-serif font-black font-black font-black font-black font-black font-black">
+                  <h2 className="text-4xl md:text-6xl font-light mb-8 leading-none italic font-black font-serif font-black font-serif font-black font-serif">The Process</h2>
+                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-black font-sans font-black font-sans">A Sequence of Excellence</p>
                 </div>
-                <div className="grid md:grid-cols-3 gap-16 relative">
+                <div className="grid md:grid-cols-3 gap-16 relative font-sans font-black font-sans font-black">
                   {[
-                    { step: "01", title: "Vision Call", desc: "A creative session to align on the artistic direction and schedule flow.", icon: <MessageCircle /> },
-                    { step: "02", title: "Confirmation", desc: "A 30% retainer and signed agreement secure your specific block in our calendar.", icon: <Award /> },
-                    { step: "03", title: "Final Design", desc: "Timeline refinements and reference reviews 30 days prior to refine timeline specifics.", icon: <Map /> }
+                    { step: "01", title: "Vision Call", desc: "A creative session to align on the artistic direction and schedule flow.", icon: <MessageCircle className="font-black font-black" /> },
+                    { step: "02", title: "Confirmation", desc: "A 30% retainer and signed agreement secure your specific block in our calendar.", icon: <Award className="font-black font-black" /> },
+                    { step: "03", title: "Final Design", desc: "Timeline refinements and reference reviews 30 days prior to refine timeline specifics.", icon: <Map className="font-black font-black" /> }
                   ].map((item, idx) => (
-                    <div key={idx} className="relative z-10 text-center flex flex-col items-center group">
-                      <div className="w-24 h-24 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500 font-black">{item.icon}</div>
-                      <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em] font-black">{item.step}</span>
-                      <h4 className="text-4xl font-serif italic mb-6 text-slate-950 font-black">{item.title}</h4>
-                      <p className="text-xl leading-relaxed text-slate-500 font-medium px-4">{item.desc}</p>
+                    <div key={idx} className="relative z-10 text-center flex flex-col items-center group font-black font-sans font-black font-black font-sans font-black">
+                      <div className="w-24 h-24 bg-white border border-slate-100 rounded-full flex items-center justify-center mb-8 shadow-xl text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500 font-black font-sans font-black font-sans font-black font-sans">{item.icon}</div>
+                      <span className="text-[10px] font-black text-[#C5A059] mb-4 uppercase tracking-[0.4em] font-sans font-black font-black font-black font-sans font-black font-black">{item.step}</span>
+                      {/* BIGGER PROCESS TITLE */}
+                      <h4 className="text-4xl font-serif italic mb-6 text-slate-950 font-black font-serif font-black font-serif font-black font-serif">{item.title}</h4>
+                      {/* BIGGER PROCESS DESCRIPTION */}
+                      <p className="text-xl leading-relaxed text-slate-500 font-medium px-4 font-black font-black font-black">{item.desc}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
               {proposalData.workLinks && proposalData.workLinks.length > 0 && (
-                <section className="bg-slate-950 py-24 md:py-32 px-8 font-black">
-                  <div className="max-w-5xl mx-auto font-black">
-                    <div className="text-center mb-16 font-serif">
-                      <h2 className="text-3xl md:text-5xl italic text-white mb-8 font-serif leading-none font-black">Selected Stories</h2>
-                      <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase">Recommended Viewing</p>
+                <section className="bg-slate-950 py-24 md:py-32 px-8 font-sans font-black font-sans font-black">
+                  <div className="max-w-5xl mx-auto font-black font-sans font-black font-black font-sans font-black">
+                    <div className="text-center mb-16 font-serif font-black font-black font-black font-black font-black font-black font-black font-black">
+                      <h2 className="text-3xl md:text-5xl italic text-white mb-8 font-serif leading-none font-black font-black font-black font-black font-black font-black font-black font-black">Selected Stories</h2>
+                      <p className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black">Recommended Viewing</p>
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-8 font-black">
+                    <div className="grid sm:grid-cols-2 gap-8 font-black font-sans font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black">
                       {proposalData.workLinks.map((link) => (
-                        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-10 rounded-[3rem] flex items-center justify-between group hover:bg-white/10 transition-all font-black">
-                          <div>
-                            <h4 className="text-white font-bold text-xl mb-2 font-serif italic leading-none font-black">{link.title}</h4>
-                            <div className="flex items-center gap-2">
-                                <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black font-sans leading-none">Launch Gallery</span>
-                                {link.note && <div className="bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none flex items-center gap-1"><LockKeyhole size={10} /> {link.note}</div>}
+                        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-10 rounded-[3rem] flex items-center justify-between group hover:bg-white/10 transition-all font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black">
+                          <div className="font-black font-sans font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black">
+                            <h4 className="text-white font-bold text-xl mb-2 font-serif italic leading-none font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">{link.title}</h4>
+                            <div className="flex items-center gap-2 font-black font-sans font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black">
+                                <span className="text-slate-400 text-[10px] tracking-widest uppercase font-black font-sans leading-none font-black font-black font-black font-sans leading-none font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black">Launch Gallery</span>
+                                {link.note && <div className="bg-[#C5A059]/10 text-[#C5A059] px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest leading-none flex items-center gap-1 font-black font-sans font-black font-black font-black font-sans font-black font-black font-black font-sans font-black font-black"><LockKeyhole size={10} className="font-black font-black font-black" /> {link.note}</div>}
                             </div>
                           </div>
-                          <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all shrink-0"><LinkIcon size={18} /></div>
+                          <div className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center group-hover:bg-[#C5A059] group-hover:scale-110 transition-all shrink-0 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><LinkIcon size={18} className="font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" /></div>
                         </a>
                       ))}
                     </div>
@@ -787,24 +763,24 @@ const App = () => {
                 </section>
               )}
 
-              <section className="bg-[#fafaf9] py-24 md:py-32 px-8 border-y border-slate-100">
-                <div className="max-w-6xl mx-auto">
-                  <div className="text-center mb-20 md:mb-24 font-serif">
-                    <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 font-serif leading-none font-black">Kind Words</h2>
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}
+              <section className="bg-[#fafaf9] py-24 md:py-32 px-8 border-y border-slate-100 font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black">
+                <div className="max-w-6xl mx-auto font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                  <div className="text-center mb-20 md:mb-24 font-serif font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                    <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 font-serif leading-none font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Kind Words</h2>
+                    <div className="flex items-center justify-center gap-2 mb-4 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                      {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" />)}
                     </div>
-                    <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-black font-black">Trusted by Spark Couples</p>
+                    <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black">Trusted by Spark Couples</p>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-black">
+                  <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-black font-sans font-black font-black font-black font-black font-sans font-black font-black font-black font-black font-sans font-black font-black">
                     {proposalData.reviews.map((review) => (
-                      <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-black font-black">
-                        <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors" size={80} strokeWidth={0.5} />
-                        <div className="relative z-10 font-black leading-relaxed">
-                          <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black">"{review.text}"</p>
-                          <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-black">
-                            <div className="h-1px w-12 bg-[#C5A059]"></div>
-                            <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none font-black">{review.author}</p>
+                      <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black">
+                        <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" size={80} strokeWidth={0.5} />
+                        <div className="relative z-10 font-black font-sans font-black leading-relaxed font-black font-black font-sans font-black leading-relaxed font-black font-black font-sans font-black leading-relaxed font-black font-black font-sans font-black leading-relaxed">
+                          <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif font-black font-serif">"{review.text}"</p>
+                          <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black font-black font-sans font-black">
+                            <div className="h-1px w-12 bg-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"></div>
+                            <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none font-black font-black font-sans font-black leading-none font-black font-black font-sans font-black leading-none font-black font-black font-sans font-black leading-none font-black font-black font-sans font-black">{review.author}</p>
                           </div>
                         </div>
                       </div>
@@ -813,31 +789,31 @@ const App = () => {
                 </div>
               </section>
 
-              <footer className="bg-[#0a0a0a] text-white py-32 md:py-48 px-8 overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-                <div className="max-w-6xl mx-auto relative z-10">
-                  <div className="grid md:grid-cols-2 gap-24 items-center">
-                    <div className="text-left leading-relaxed font-black">
-                      <h3 className="text-6xl md:text-8xl mb-12 italic leading-none text-white font-serif font-black">Your Legacy Starts Here.</h3>
-                      <div className="space-y-12">
-                        <div className="flex gap-8">
-                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black"><Clock size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
-                          <div className="font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059]">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
+              <footer className="bg-[#0a0a0a] text-white py-32 md:py-48 px-8 overflow-hidden relative font-sans font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"></div>
+                <div className="max-w-6xl mx-auto relative z-10 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                  <div className="grid md:grid-cols-2 gap-24 items-center font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                    <div className="text-left leading-relaxed font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                      <h3 className="text-6xl md:text-8xl mb-12 italic leading-none text-white font-serif font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Your Legacy Starts Here.</h3>
+                      <div className="space-y-12 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                        <div className="flex gap-8 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><Clock size={28} className="text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" strokeWidth={1} /></div>
+                          <div className="font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Duration</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Active for 30 days — Valid until {new Date((proposalData.createdAt || Date.now()) + (EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p></div>
                         </div>
-                        <div className="flex gap-8">
-                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black"><Award size={28} className="text-[#C5A059]" strokeWidth={1} /></div>
-                          <div className="font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059]">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight">A signed agreement formalizes all details and dates.</p></div>
+                        <div className="flex gap-8 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                          <div className="w-16 h-16 rounded-[1.5rem] border border-white/20 flex items-center justify-center shrink-0 shadow-lg shadow-black/50 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><Award size={28} className="text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" strokeWidth={1} /></div>
+                          <div className="font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><h4 className="font-black text-[11px] tracking-[0.4em] uppercase mb-4 text-[#C5A059] font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Contract</h4><p className="text-xl font-bold text-white tracking-tight font-black leading-tight font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">A signed agreement formalizes all details and dates.</p></div>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] shadow-2xl relative group overflow-hidden font-black">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125"></div>
-                      <h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none font-black font-black">Vision Call</h4>
-                      <p className="text-slate-600 mb-16 text-xl leading-relaxed font-medium pr-4">To ensure our artistic styles align, we invite you to a brief 15-minute introductory session.</p>
-                      <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for ${proposalData.clientName}.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4">Connect on WhatsApp <MessageCircle size={20} /></button>
+                    <div className="bg-white text-slate-950 p-12 md:p-24 rounded-[4rem] shadow-2xl relative group overflow-hidden font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/5 rounded-bl-[10rem] transition-transform duration-[2s] group-hover:scale-125 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"></div>
+                      <h4 className="text-4xl md:text-6xl font-serif mb-10 italic leading-none font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Vision Call</h4>
+                      <p className="text-slate-600 mb-16 text-xl leading-relaxed font-medium pr-4 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">To ensure our artistic styles align, we invite you to a brief 15-minute introductory session.</p>
+                      <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for ${proposalData.clientName}.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">Connect on WhatsApp <MessageCircle size={20} className="font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black" /></button>
                     </div>
                   </div>
-                  <div className="mt-32 md:mt-48 pt-20 border-t border-white/10 text-center font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-black font-black font-black">The Spark Studios &copy; 2026</p></div>
+                  <div className="mt-32 md:mt-48 pt-20 border-t border-white/10 text-center font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black font-black">The Spark Studios &copy; 2026</p></div>
                 </div>
               </footer>
             </div>
