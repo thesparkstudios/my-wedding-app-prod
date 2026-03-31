@@ -250,21 +250,6 @@ const App = () => {
     }
   };
 
-  const resetExpiry = async (quoteId) => {
-    try {
-      const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', quoteId);
-      const newCreatedAt = Date.now();
-      await updateDoc(docRef, { createdAt: newCreatedAt, isActive: true });
-      // If we're currently previewing this quote, update local state too
-      if (currentQuoteId === quoteId) {
-        setProposalData(prev => ({ ...prev, createdAt: newCreatedAt, isActive: true }));
-        setIsExpired(false);
-      }
-    } catch (err) {
-      setFbError("Expiry reset failed.");
-    }
-  };
-
   const slugify = (value = '') => {
     const slug = value
       .toString()
@@ -572,17 +557,6 @@ const App = () => {
                       <Power size={14} /> {quote.isActive !== false ? 'Live' : 'Off'}
                     </button>
 
-                    {/* EXTEND EXPIRY — only shown for expired quotes */}
-                    {status.label === 'Expired' && (
-                      <button
-                        onClick={() => resetExpiry(quote.id)}
-                        className="flex-1 md:flex-none p-4 rounded-2xl transition flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                        title="Reset expiry date to today (extends 30 more days)"
-                      >
-                        <RefreshCw size={14} /> Extend
-                      </button>
-                    )}
-
                     <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
                     <button onClick={() => handleDuplicate(quote)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-2"><Copy size={14} /> Duplicate</button>
                     
@@ -725,19 +699,7 @@ const App = () => {
                 <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><AlertCircle size={40} strokeWidth={1} /></div>
                 <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif font-black font-black font-black">Proposal Expired</h1>
                 <p className="text-slate-500 mb-10 font-medium font-black font-black font-black font-black font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black font-black font-black font-black">{proposalData.clientName}</span> is inactive.</p>
-                {isAdmin && currentQuoteId ? (
-                  <div className="space-y-4">
-                    <button
-                      onClick={() => resetExpiry(currentQuoteId)}
-                      className="w-full bg-amber-500 text-white py-6 rounded-2xl font-bold hover:bg-amber-600 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3"
-                    >
-                      <RefreshCw size={16} /> Extend 30 Days
-                    </button>
-                    <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black font-black">Contact Studio</button>
-                  </div>
-                ) : (
-                  <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black font-black">Contact Studio</button>
-                )}
+                <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black font-black">Contact Studio</button>
               </div>
             </div>
           ) : (
