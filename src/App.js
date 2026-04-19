@@ -100,9 +100,9 @@ const App = () => {
           "1 Professional Lead Videographer (with Multiple camera angles)",
           "Cinematic Highlight Film (each day)",
           "Full-Length Edited Documentary (each day)",
-          "Unlimited Professionally Edited Photos"
-          "Aerial Drone Cinematography"
-          "Online Digital Gallery"
+          "Unlimited Professionally Edited Photos",
+          "Aerial Drone Cinematography",
+          "Online Digital Gallery",
           "Complimentary photoshoot prior to the event date"
         ]
       },
