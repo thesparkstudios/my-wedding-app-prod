@@ -75,49 +75,51 @@ const App = () => {
         id: 1,
         name: "Essential",
         price: "$9,650",
-        description: "Artisan digital coverage designed for couples who prioritize high-end cinema and photography.",
+        description: "For couples who want their day beautifully documented — every moment captured with care, delivered with artisan quality.",
         isVisible: true,
         isHighlighted: false,
         features: [
-          "1 Professional Lead Photographer",
-          "1 Professional Lead Videographer",
-          "Cinematic Highlight Film",
+          "1 Professional Lead Photographer (single camera)",
+          "1 Professional Lead Videographer (single camera)",
+          "2-4 Minutes Combined Highlight Film",
           "Full-Length Edited Documentary",
-          "Unlimited Professionally Edited Photos",
-          "Aerial Drone Cinematography",
-          "Online Digital Gallery"
+          "600-800 Professionally Edited Photos",
+          "Online Digital Gallery",
+          "Pre-event location photoshoot — not included"
         ]
       },
       {
         id: 2,
         name: "Signature",
         price: "$11,550",
-        description: "Our most coveted collection, featuring hand-crafted heirlooms to preserve your family legacy.",
+        description: "Our most sought-after experience — cinematic storytelling across multiple angles, aerial perspectives, and a complimentary pre-event photoshoot woven into your film. This is where memories become art.",
         isVisible: true,
         isHighlighted: true,
         features: [
-          "Everything in Essential",
-          "12x17 Handcrafted Wedding Album",
-          "Faux Leather Album Briefcase",
-          "Priority Editing",
-          "Custom USB with All Photos & Videos"
+          "1 Professional Lead Photographer (2 Cameras / More Coverage)",
+          "1 Professional Lead Videographer (with Multiple camera angles)",
+          "Cinematic Highlight Film (each day)",
+          "Full-Length Edited Documentary (each day)",
+          "Unlimited Professionally Edited Photos"
+          "Aerial Drone Cinematography"
+          "Online Digital Gallery"
+          "Complimentary photoshoot prior to the event date"
         ]
       },
       {
         id: 3,
         name: "Legacy",
         price: "$13,950",
-        description: "The definitive storytelling experience for those who desire no compromises in detail or delivery.",
+        description: "For couples who want absolutely everything — an expanded production team, guaranteed delivery timelines, exclusive extras, and a level of detail that leaves nothing to chance. The complete Spark Studios experience.",
         isVisible: true,
         isHighlighted: false,
         features: [
           "Everything in Signature",
-          "Expanded Production Team",
-          "Upgraded Premium Faux Leather Case",
-          "Custom-Designed USB Presentation Case",
+          "Expanded Production Team (5 hours of second team)",
           "Guaranteed 6-Week Digital Delivery",
-          "Instagram Cinematic Teaser",
-          "72-Hour Photo Preview Gallery"
+          "Instagram Cinematic Teasers",
+          "Raw photos within 24 hours",
+          "Expanded 2 hour E-shoot with photo and video",          
         ]
       }
     ],
