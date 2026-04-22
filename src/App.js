@@ -226,14 +226,28 @@ const App = () => {
         author: "Zeewarad", 
         wedding: "Nikkah & Pre-Shoot",
         couplePhoto: "",
-        text: "The Spark Studio's filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" 
+        text: "Choosing Spark Studios to cover my event was one of the best decisions I have ever made. Waqar is truly a gem of a person and so easy to work with." 
       },
       { 
         id: 2, 
         author: "Hanni", 
         wedding: "Wedding",
         couplePhoto: "",
-        text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." 
+        text: "We are beyond happy with our wedding photos and videos. This team is incredibly talented, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." 
+      },
+      {
+        id: 3,
+        author: "Hafsa",
+        wedding: "Wedding",
+        couplePhoto: "",
+        text: "They handled our event beautifully with exceptional professionalism. The photographer and videographer did an incredible job capturing every special moment. The entire experience was seamless and stress-free from start to finish."
+      },
+      {
+        id: 4,
+        author: "Haider",
+        wedding: "Photo & Video Package",
+        couplePhoto: "",
+        text: "Waqar and his team are doing amazing work. Professional, great communication, and the picture quality was incredible. I expected one video — they delivered four, each with separate event highlights. The music selections were spot on. Would easily recommend them to anyone. You won't be disappointed."
       }
     ],
     workLinks: [
@@ -931,12 +945,7 @@ const App = () => {
                   <img src={LOGO_URL} alt="Spark Studios" className="h-12 mx-auto mb-16 brightness-0 invert opacity-80"/>
                   <p className="text-[10px] font-black text-white/60 tracking-[0.6em] uppercase mb-8">A Bespoke Proposal For</p>
                   <h1 className="text-6xl md:text-8xl font-serif italic text-white font-black leading-none mb-16">{proposalData.clientName}</h1>
-                  {proposalData.showVideoInvite && proposalData.loomUrl && (
-                    <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-8 py-4 text-white text-xs font-black uppercase tracking-[0.3em]">
-                      <Play size={14} fill="white"/>
-                      {proposalData.videoInviteText || "Watch this first"}
-                    </div>
-                  )}
+
                 </div>
               </div>
 
