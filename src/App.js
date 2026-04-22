@@ -231,21 +231,21 @@ const App = () => {
       { 
         id: 2, 
         author: "Hanni", 
-        wedding: "Barat & Walima",
+        wedding: "Wedding",
         couplePhoto: "",
         text: "We are beyond happy with our wedding photos and videos. This team is incredibly talented, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." 
       },
       {
         id: 3,
         author: "Hafsa",
-        wedding: "Nikah & Reception",
+        wedding: "Wedding",
         couplePhoto: "",
         text: "They handled our event beautifully with exceptional professionalism. The photographer and videographer did an incredible job capturing every special moment. The entire experience was seamless and stress-free from start to finish."
       },
       {
         id: 4,
         author: "Haider",
-        wedding: "Barat & Walima",
+        wedding: "Photo & Video Package",
         couplePhoto: "",
         text: "Waqar and his team are doing amazing work. Professional, great communication, and the picture quality was incredible. I expected one video — they delivered four, each with separate event highlights. The music selections were spot on. Would easily recommend them to anyone. You won't be disappointed."
       }
@@ -632,7 +632,7 @@ const App = () => {
           {view === 'preview' && <button onClick={() => setView('editor')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Edit3 size={14}/> Edit</button>}
           {view === 'editor' && (
             <>
-              <button onClick={() => setView('preview')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Eye size={14}/> Preview</button>
+              <button onClick={() => { if (currentQuoteId) { window.open(`${window.location.origin}${window.location.pathname}#/quote/${currentQuoteId}`, '_blank'); } else { alert('Save the quote first to preview it.'); } }} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Eye size={14}/> Preview</button>
               <button onClick={saveQuote} disabled={isSaving} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b8934d] px-4 py-2 rounded-xl transition-all disabled:opacity-50">
                 {isSaving ? <RefreshCw size={14} className="animate-spin"/> : <Save size={14}/>} {isSaving ? 'Saving...' : copyFeedback ? '✓ Saved' : 'Save'}
               </button>
@@ -707,7 +707,7 @@ const App = () => {
                         </button>
                         <button onClick={() => handleDuplicate(quote)} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Copy size={14}/></button>
                         <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); setView('editor'); window.location.hash = `#/quote/${quote.id}`; }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Edit3 size={14}/></button>
-                        <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); setView('preview'); window.location.hash = `#/quote/${quote.id}`; }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Eye size={14}/></button>
+                        <button onClick={() => { window.open(`${window.location.origin}${window.location.pathname}#/quote/${quote.id}`, '_blank'); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Eye size={14}/></button>
                         <button
                           onClick={() => {
                             const url = `${window.location.origin}${window.location.pathname}#/quote/${quote.id}`;
