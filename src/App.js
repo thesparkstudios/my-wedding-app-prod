@@ -956,6 +956,7 @@ const App = () => {
                         </div>
                       ) : (
                         <iframe
+                          title="Personal message from Waqar"
                           src={proposalData.loomUrl.replace('share', 'embed') + '?autoplay=1&hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true'}
                           className="w-full h-full"
                           frameBorder="0"
