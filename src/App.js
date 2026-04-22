@@ -942,7 +942,7 @@ const App = () => {
                   <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80"/>
                 </div>
                 <div className="relative z-10 text-center px-8 max-w-4xl mx-auto">
-                  <img src={LOGO_URL} alt="Spark Studios" className="h-12 mx-auto mb-16 brightness-0 invert opacity-80"/>
+                  <img src={LOGO_URL} alt="Spark Studios" className="h-16 mx-auto mb-16" style={{mixBlendMode: 'screen', opacity: 0.95}}/>
                   <p className="text-[10px] font-black text-white/60 tracking-[0.6em] uppercase mb-8">A Bespoke Proposal For</p>
                   <h1 className="text-6xl md:text-8xl font-serif italic text-white font-black leading-none mb-16">{proposalData.clientName}</h1>
 
