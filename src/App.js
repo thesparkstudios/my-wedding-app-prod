@@ -10,7 +10,8 @@ import {
   Settings, Copy, Share2, AlertCircle, List, ArrowLeft,
   Check, Lock, XCircle, MessageCircle, Trash, Star, Quote,
   Play, Link as LinkIcon, HelpCircle, ShieldCheck, Map,
-  LockKeyhole, Sparkles, Youtube, RefreshCw, Power, ExternalLink
+  LockKeyhole, Sparkles, Youtube, RefreshCw, Power, ExternalLink,
+  ChevronLeft, ChevronRight, User
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION ---
@@ -32,6 +33,100 @@ const finalAppId = typeof __app_id !== 'undefined' ? __app_id : 'the-spark-studi
 const WHATSAPP_NUMBER = "16478633135";
 const EXPIRY_DAYS = 30;
 const LOGO_URL = "https://thesparkstudios.ca/wp-content/uploads/2025/01/logo@2x.png";
+const WAQAR_PHOTO = "https://thesparkstudios.ca/wp-content/uploads/2026/04/waqar1.jpeg";
+
+// --- Google Reviews Badge ---
+const GoogleReviewsBadge = () => (
+  <div className="inline-flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-5 py-3 shadow-sm mx-auto">
+    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    <div className="flex items-center gap-1">
+      {[...Array(5)].map((_, i) => <Star key={i} size={13} fill="#C5A059" className="text-[#C5A059]" />)}
+    </div>
+    <span className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase">Google Reviews</span>
+  </div>
+);
+
+// --- Review Carousel ---
+const ReviewCarousel = ({ reviews }) => {
+  const [current, setCurrent] = useState(0);
+  const total = reviews.length;
+  const prev = () => setCurrent((c) => (c - 1 + total) % total);
+  const next = () => setCurrent((c) => (c + 1) % total);
+  const review = reviews[current];
+
+  return (
+    <div className="relative max-w-3xl mx-auto">
+      <div className="relative bg-white rounded-[3rem] border border-slate-50 shadow-sm overflow-hidden p-12 md:p-16 min-h-[320px] flex flex-col justify-between">
+        <Quote className="absolute top-10 left-10 text-slate-50" size={80} strokeWidth={0.5} />
+        
+        {/* Stars */}
+        <div className="flex gap-1 mb-6 relative z-10">
+          {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#C5A059" className="text-[#C5A059]" />)}
+        </div>
+
+        {/* Review text */}
+        <div className="relative z-10 flex-1">
+          <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black">"{review.text}"</p>
+        </div>
+
+        {/* Author row */}
+        <div className="relative z-10 flex items-center gap-5 border-t border-slate-50 pt-8 mt-8">
+          {review.couplePhoto ? (
+            <img 
+              src={review.couplePhoto} 
+              alt={review.author}
+              className="w-14 h-14 rounded-full object-cover border-2 border-[#C5A059]/30 shrink-0"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-[#C5A059]/10 border-2 border-[#C5A059]/20 flex items-center justify-center shrink-0">
+              <span className="text-[#C5A059] font-black text-lg font-sans">{review.author?.charAt(0) || '★'}</span>
+            </div>
+          )}
+          <div>
+            <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans leading-none">{review.author}</p>
+            {review.wedding && <p className="text-[10px] text-slate-400 tracking-widest uppercase font-black mt-1">{review.wedding}</p>}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <GoogleReviewsBadge />
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-6 mt-10">
+          <button
+            onClick={prev}
+            className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-[#C5A059] hover:border-[#C5A059] hover:text-white text-slate-500 transition-all shadow-sm"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div className="flex gap-2">
+            {reviews.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#C5A059] w-6' : 'bg-slate-200'}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={next}
+            className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-[#C5A059] hover:border-[#C5A059] hover:text-white text-slate-500 transition-all shadow-sm"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const App = () => {
   const isDirectClientLink = window.location.hash.startsWith('#/quote/');
@@ -54,13 +149,13 @@ const App = () => {
   const [videoStarted, setVideoStarted] = useState(false);
 
   const initialProposalState = {
-    isActive: true, // Added for disabling quotes
+    isActive: true,
     clientName: "Ayushi & Family",
     visionStatement: "To craft a cinematic narrative that encapsulates the vibrant tapestry of your wedding celebrations, weaving together the intimate moments, cultural richness, and joyous festivities into a timeless visual heirloom that resonates with love, tradition, and the unique spirit of her family.",
     heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=2000",
     loomUrl: "", 
-    showVideoInvite: true, // Control for video invite text
-    videoInviteText: "Hey Ayushi, watch this first", // Custom invite text
+    showVideoInvite: true,
+    videoInviteText: "Hey Ayushi, watch this first",
     createdAt: Date.now(),
     views: 0,
     lastViewedAt: null,
@@ -78,6 +173,7 @@ const App = () => {
         description: "For couples who want their day beautifully documented — every moment captured with care, delivered with artisan quality.",
         isVisible: true,
         isHighlighted: false,
+        deliveryTimeline: "3–4 Months",
         features: [
           "1 Professional Lead Photographer (single camera)",
           "1 Professional Lead Videographer (single camera)",
@@ -95,6 +191,7 @@ const App = () => {
         description: "Our most sought-after experience — cinematic storytelling across multiple angles, aerial perspectives, and a complimentary pre-event photoshoot woven into your film. This is where memories become art.",
         isVisible: true,
         isHighlighted: true,
+        deliveryTimeline: "3–5 Months",
         features: [
           "1 Professional Lead Photographer (2 Cameras / More Coverage)",
           "1 Professional Lead Videographer (with Multiple camera angles)",
@@ -113,6 +210,7 @@ const App = () => {
         description: "For couples who want absolutely everything — an expanded production team, guaranteed delivery timelines, exclusive extras, and a level of detail that leaves nothing to chance. The complete Spark Studios experience.",
         isVisible: true,
         isHighlighted: false,
+        deliveryTimeline: "6 Weeks Guaranteed",
         features: [
           "Everything in Signature",
           "Expanded Production Team (5 hours of second team)",
@@ -124,8 +222,20 @@ const App = () => {
       }
     ],
     reviews: [
-      { id: 1, author: "Zeewarad", text: "The Spark Studio’s filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" },
-      { id: 2, author: "Hanni", text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." }
+      { 
+        id: 1, 
+        author: "Zeewarad", 
+        wedding: "Nikkah & Pre-Shoot",
+        couplePhoto: "",
+        text: "The Spark Studio's filmed my Nikkah and pre-shoot! Honestly choosing them to cover my event was one of the best decisions I have ever made! Waqar is truly a gem of a person and so easy to work with!" 
+      },
+      { 
+        id: 2, 
+        author: "Hanni", 
+        wedding: "Wedding",
+        couplePhoto: "",
+        text: "We are beyond happy with our wedding photos and videos! This team is incredibly talented, professional, and made the entire experience so smooth and fun. From the very beginning, they were attentive to our vision, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." 
+      }
     ],
     workLinks: [
       { id: 1, title: "Private Cinema Playlist", url: "https://www.youtube.com/playlist?list=PL7sciwbrUIXV51kVZ5ooqXdMh0BuP8709", note: "Private Gallery" },
@@ -203,7 +313,6 @@ const App = () => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             
-            // Check if quote is disabled
             if (data.isActive === false && !isAdmin) {
               setNotFound(true);
               setIsUnlocked(true);
@@ -257,7 +366,6 @@ const App = () => {
       const docRef = doc(db, 'artifacts', finalAppId, 'public', 'data', 'quotes', quoteId);
       const newCreatedAt = Date.now();
       await updateDoc(docRef, { createdAt: newCreatedAt, isActive: true });
-      // If we're currently previewing this quote, update local state too
       if (currentQuoteId === quoteId) {
         setProposalData(prev => ({ ...prev, createdAt: newCreatedAt, isActive: true }));
         setIsExpired(false);
@@ -498,365 +606,446 @@ const App = () => {
         .font-sans { font-family: 'Montserrat', sans-serif !important; }
         body { font-family: 'Montserrat', sans-serif; -webkit-font-smoothing: antialiased; }
         h1, h2, h3, h4 { font-family: 'Cormorant Garamond', serif !important; }
-        
-        @keyframes pulse-gold {
-          0% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0.4); }
-          70% { box-shadow: 0 0 0 20px rgba(197, 160, 89, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0); }
-        }
-        .animate-pulse-gold {
-          animation: pulse-gold 2s infinite;
-        }
+        .package-card-featured { box-shadow: 0 32px 80px rgba(197,160,89,0.18); }
       `}</style>
 
-      {fbError && view !== 'preview' && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4 font-sans font-black">
-          <div className="bg-rose-600 text-white p-4 rounded-2xl shadow-xl flex items-center gap-3"><XCircle size={18} /> {fbError}</div>
-        </div>
-      )}
-
-      {view === 'dashboard' && (
-        <div className="max-w-6xl mx-auto py-16 px-6 font-sans">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-8">
-            <div>
-              <h1 className="text-5xl md:text-7xl font-light text-slate-950 tracking-tight leading-none font-serif mb-4">Proposals</h1>
-              <p className="text-slate-500 font-black tracking-widest uppercase text-[11px]">Lead Intelligence Dashboard</p>
-            </div>
-            <button onClick={createNew} className="bg-slate-950 text-white px-10 py-5 rounded-full flex items-center gap-3 shadow-xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-800 transition active:scale-95"><Plus size={16} /> New Entry</button>
-          </div>
-
-          <div className="bg-white border border-slate-100 rounded-[2.5rem] p-5 md:p-6 mb-10 shadow-sm">
-            <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-              <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.35em] mb-2">Search Portal</p>
-                <h2 className="text-2xl text-slate-900 font-serif leading-none">Find a client quote fast</h2>
-              </div>
-              <div className="w-full md:max-w-md">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by client name"
-                  className="w-full p-4 border border-slate-200 bg-slate-50 rounded-2xl outline-none focus:bg-white focus:ring-1 focus:ring-slate-300 text-sm font-semibold text-slate-800"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className={`grid gap-6 ${filteredQuotes.length <= 2 ? 'max-w-4xl mx-auto w-full' : ''}`}>
-            {filteredQuotes.map((quote) => {
-              const status = getQuoteStatus(quote);
-              return (
-                <div key={quote.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between hover:shadow-xl transition-all duration-500 gap-6">
-                  <div className="flex items-start gap-6 font-sans">
-                    <div className="p-4 rounded-3xl bg-slate-50 text-slate-900 shadow-sm">
-                      <Calendar size={28} strokeWidth={1.2} />
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <h3 className="font-bold text-slate-900 text-2xl tracking-tight font-serif leading-none">{quote.clientName}</h3>
-                        <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.25em] font-black ${status.className}`}>{status.label}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 mt-2">
-                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><Eye size={14} className="text-slate-300" /> {quote.views || 0} Views</div>
-                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><Clock size={14} className="text-slate-300" /> Seen: {getTimeAgo(quote.lastViewedAt)}</div>
-                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-sans"><RefreshCw size={14} className="text-slate-300" /> Updated: {formatDateTime(quote.updatedAt || quote.createdAt)}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 w-full lg:w-auto font-black font-sans">
-                    {/* ACTIVE/INACTIVE TOGGLE */}
-                    <button 
-                      onClick={() => toggleQuoteActive(quote.id, quote.isActive !== false)}
-                      className={`flex-1 md:flex-none p-4 rounded-2xl transition flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest ${quote.isActive !== false ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
-                      title={quote.isActive !== false ? "Click to Disable" : "Click to Enable"}
-                    >
-                      <Power size={14} /> {quote.isActive !== false ? 'Live' : 'Off'}
-                    </button>
-
-                    {/* EXTEND EXPIRY — only shown for expired quotes */}
-                    {status.label === 'Expired' && (
-                      <button
-                        onClick={() => resetExpiry(quote.id)}
-                        className="flex-1 md:flex-none p-4 rounded-2xl transition flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                        title="Reset expiry date to today (extends 30 more days)"
-                      >
-                        <RefreshCw size={14} /> Extend
-                      </button>
-                    )}
-
-                    <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); window.location.hash = ''; setView('editor'); }} className="flex-1 px-8 py-4 bg-slate-50 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-100 transition">Edit</button>
-                    <button onClick={() => handleDuplicate(quote)} className="flex-1 px-8 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-2"><Copy size={14} /> Duplicate</button>
-                    
-                    {/* OPEN IN NEW TAB */}
-                    <button 
-                      onClick={() => window.open(`${window.location.origin}${window.location.pathname}#/quote/${quote.id}`, '_blank')} 
-                      className="flex-1 px-8 py-4 bg-slate-950 text-white rounded-2xl text-[11px] uppercase tracking-widest shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                    >
-                      Preview <ExternalLink size={14} />
-                    </button>
-
-                    {deletingId === quote.id ? (
-                      <div className="flex gap-2 p-1 bg-rose-50 rounded-2xl animate-in fade-in">
-                        <button onClick={() => handleDelete(quote.id)} className="p-3 bg-rose-600 text-white rounded-xl"><Check size={16} /></button>
-                        <button onClick={() => setDeletingId(null)} className="p-3 bg-white text-slate-400 rounded-xl"><XCircle size={16} /></button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setDeletingId(quote.id)} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-rose-500 transition font-sans font-black"><Trash2 size={18} strokeWidth={1.5} /></button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredQuotes.length === 0 && (
-            <div className="mt-8 bg-white border border-dashed border-slate-200 rounded-[2rem] p-10 text-center text-slate-500 font-semibold">
-              No quotes matched that client name.
-            </div>
+      {/* ---- ADMIN TOOLBAR ---- */}
+      {isAdmin && view !== 'dashboard' && (
+        <div className="sticky top-0 z-50 bg-slate-950 text-white px-6 py-3 flex items-center gap-4 text-xs font-sans font-black">
+          <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft size={14}/> Dashboard
+          </button>
+          <div className="flex-1"/>
+          {view === 'preview' && <button onClick={() => setView('editor')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Edit3 size={14}/> Edit</button>}
+          {view === 'editor' && (
+            <>
+              <button onClick={() => setView('preview')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Eye size={14}/> Preview</button>
+              <button onClick={saveQuote} disabled={isSaving} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b8934d] px-4 py-2 rounded-xl transition-all disabled:opacity-50">
+                {isSaving ? <RefreshCw size={14} className="animate-spin"/> : <Save size={14}/>} {isSaving ? 'Saving...' : copyFeedback ? '✓ Saved' : 'Save'}
+              </button>
+            </>
           )}
         </div>
       )}
 
-      {view === 'editor' && (
-        <div className="max-w-6xl mx-auto py-16 px-6 text-slate-900 pb-48 leading-relaxed font-sans">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-slate-100 pb-10 gap-8">
-            <div className="flex items-center gap-6">
-              <button onClick={() => { setView('dashboard'); window.location.hash = ''; }} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-slate-900 transition"><ArrowLeft size={20} /></button>
-              <div><h1 className="text-4xl font-light text-slate-950 font-serif leading-none mb-1">Editor</h1><p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] font-sans">{currentQuoteId ? `Editing: ${currentQuoteId}` : 'New Narrative'}</p></div>
-            </div>
-            <div className="flex gap-4 w-full md:w-auto font-black font-sans font-black">
-              <button onClick={saveQuote} disabled={isSaving} className={`flex-1 px-10 py-5 rounded-full flex items-center justify-center gap-3 transition shadow-xl ${copyFeedback ? 'bg-emerald-600' : 'bg-slate-950'} text-white uppercase tracking-widest text-[11px]`}>
-                {isSaving ? <RefreshCw className="h-4 w-4 animate-spin font-sans font-black" /> : copyFeedback ? <Check size={16} /> : <Save size={16} />}
-                {isSaving ? "Syncing..." : currentQuoteId ? "Update Link" : "Save Proposal"}
+      {/* ---- DASHBOARD ---- */}
+      {view === 'dashboard' && isAdmin && (
+        <div className="min-h-screen bg-slate-50 p-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h1 className="text-4xl font-serif italic text-slate-950 font-black">Spark Portal</h1>
+                <p className="text-[10px] font-black text-slate-400 tracking-[0.4em] uppercase mt-2">Quote Management</p>
+              </div>
+              <button onClick={createNew} className="flex items-center gap-2 bg-slate-950 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#C5A059] transition-all">
+                <Plus size={16}/> New Quote
               </button>
-              {currentQuoteId && <button onClick={() => handleDuplicate(proposalData)} className="flex-1 px-10 py-5 bg-slate-100 text-slate-900 rounded-full flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] shadow-xl font-sans font-black"><Copy size={16} /> Duplicate</button>}
-              {currentQuoteId && <button onClick={() => { window.location.hash = `#/quote/${currentQuoteId}`; setView('preview'); }} className="flex-1 px-10 py-5 bg-indigo-600 text-white rounded-full flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] shadow-xl font-sans font-black"><Eye size={16} /> Preview Mode</button>}
             </div>
-          </div>
 
-          <div className="space-y-12">
-            <section className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
-              <h2 className="text-xs font-black mb-10 flex items-center gap-3 text-slate-400 uppercase tracking-[0.3em] font-sans font-black">01. Client Narrative</h2>
-              <div className="grid md:grid-cols-2 gap-8 font-sans">
-                <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Client Name</label><input type="text" value={proposalData.clientName} onChange={(e) => updateField('clientName', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl outline-none focus:bg-white font-bold text-slate-900 text-lg font-sans font-black" /></div>
-                <div className="flex flex-col gap-2 font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Hero Image URL</label><input type="text" value={proposalData.heroImage} onChange={(e) => updateField('heroImage', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs font-black" /></div>
-                <div className="flex flex-col gap-2 mt-4 font-sans font-black font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Loom Embed URL</label><input type="text" value={proposalData.loomUrl} onChange={(e) => updateField('loomUrl', e.target.value)} className="p-4 border border-slate-100 bg-slate-50 rounded-2xl text-xs font-black" /></div>
-                
-                {/* VIDEO INVITE SETTINGS */}
-                <div className="flex flex-col gap-2 mt-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                    <div className="flex items-center justify-between mb-4">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Video Invite Text</label>
-                        <button 
-                            onClick={() => updateField('showVideoInvite', !proposalData.showVideoInvite)}
-                            className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${proposalData.showVideoInvite ? 'bg-[#C5A059] text-white shadow-md' : 'bg-slate-200 text-slate-400'}`}
-                        >
-                            {proposalData.showVideoInvite ? 'Enabled' : 'Disabled'}
-                        </button>
-                    </div>
-                    <input 
-                        type="text" 
-                        disabled={!proposalData.showVideoInvite}
-                        value={proposalData.videoInviteText} 
-                        onChange={(e) => updateField('videoInviteText', e.target.value)} 
-                        className={`p-4 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:bg-white transition-all ${!proposalData.showVideoInvite ? 'opacity-50 grayscale' : 'bg-white'}`} 
-                        placeholder="e.g. Hey Ayushi, watch this first"
-                    />
-                </div>
+            <div className="mb-6">
+              <input
+                type="text"
+                placeholder="Search by client name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full max-w-sm px-5 py-3 border border-slate-200 bg-white rounded-2xl text-sm outline-none focus:ring-1 focus:ring-slate-300 font-sans"
+              />
+            </div>
 
-                <div className="md:col-span-2 flex flex-col gap-2 mt-4 font-sans font-black font-sans font-black font-sans font-black"><label className="text-[11px] font-black uppercase tracking-widest text-slate-500 font-black">The Artistic Vision</label><textarea rows="4" value={proposalData.visionStatement} onChange={(e) => updateField('visionStatement', e.target.value)} className="p-6 border border-slate-100 bg-slate-50 rounded-2xl italic resize-none font-medium text-slate-700 font-sans font-black font-sans font-black" /></div>
+            {fbError && <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-700 text-xs font-black flex items-center gap-2"><AlertCircle size={14}/>{fbError}</div>}
+
+            {filteredQuotes.length === 0 ? (
+              <div className="text-center py-24 text-slate-400">
+                <List size={40} className="mx-auto mb-4 opacity-30"/>
+                <p className="text-sm font-black uppercase tracking-widest">{searchTerm ? 'No quotes match your search' : 'No quotes yet'}</p>
               </div>
-            </section>
-
-            <section className="font-sans">
-              <div className="flex justify-between items-center mb-10 px-4 font-sans font-black font-sans font-black"><h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 font-sans font-black">02. Itinerary</h2><button onClick={addDay} className="text-[10px] bg-slate-950 text-white px-6 py-3 rounded-full font-black uppercase tracking-widest font-sans font-black font-sans font-black"><Plus size={14} /> Add Day</button></div>
-              <div className="grid md:grid-cols-4 gap-6 font-sans font-black font-sans font-black">
-                {proposalData.days.map((day) => (
-                  <div key={day.id} className="p-8 bg-white rounded-[2.5rem] border border-slate-100 relative group font-sans font-black font-sans font-black">
-                    <button onClick={() => removeDay(day.id)} className="absolute top-6 right-6 text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity font-sans font-black font-sans font-black"><Trash2 size={16} /></button>
-                    <div className="space-y-4 font-sans font-black font-sans font-black font-sans font-black font-sans font-black">
-                      <select value={day.icon} onChange={(e) => updateDay(day.id, 'icon', e.target.value)} className="bg-slate-50 p-2 rounded-xl text-[10px] font-black uppercase outline-none mb-2 font-sans font-black font-sans font-black">{Object.keys(IconMap).map(k => <option key={k} value={k}>{k}</option>)}</select>
-                      <input type="text" value={day.label} onChange={(e) => updateDay(day.id, 'label', e.target.value)} className="w-full font-bold border-b border-dashed text-slate-900 font-serif text-lg outline-none font-sans font-black font-sans font-black font-sans font-black font-sans font-black" />
-                      <input type="text" value={day.date} onChange={(e) => updateDay(day.id, 'date', e.target.value)} className="w-full text-[11px] uppercase tracking-widest font-black text-slate-500 outline-none font-sans font-black font-sans font-black font-sans font-black font-sans font-black" />
-                      <input type="text" value={day.desc} onChange={(e) => updateDay(day.id, 'desc', e.target.value)} className="w-full text-sm text-indigo-700 font-bold outline-none font-sans font-black font-sans font-black font-sans font-black font-sans font-black" />
-                      <label className="flex items-center gap-2 mt-4 cursor-pointer font-sans font-black font-sans font-black font-sans font-black font-sans font-black"><input type="checkbox" checked={day.highlight} onChange={(e) => updateDay(day.id, 'highlight', e.target.checked)} className="rounded text-slate-950 font-sans font-black font-sans font-black font-sans font-black font-sans font-black" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-sans font-black font-sans font-black font-sans font-black font-sans font-black">Full Day Team</span></label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="font-sans">
-              <h2 className="text-xs font-black mb-10 px-4 uppercase tracking-[0.3em] text-slate-400 font-sans font-black font-sans font-black font-sans font-black">03. Collections</h2>
-              <div className="space-y-8 font-sans font-black font-sans font-black font-sans font-black font-sans font-black">
-                {proposalData.packages.map((pkg) => (
-                  <div key={pkg.id} className={`p-10 rounded-[3.5rem] border-2 transition-all ${pkg.isVisible ? 'bg-white border-slate-100' : 'bg-slate-50 opacity-50 border-dashed border-slate-200'} font-sans font-black font-sans font-black font-sans font-black font-sans font-black`}>
-                    <div className="flex justify-between items-center mb-8 border-b pb-6 border-slate-50 font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black"><div className="flex items-center gap-4 font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black"><input type="checkbox" checked={pkg.isVisible} onChange={(e) => updatePackage(pkg.id, 'isVisible', e.target.checked)} className="w-6 h-6 rounded border-slate-200 text-slate-950 font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black" /><h3 className="text-2xl font-serif text-slate-950 leading-none font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black">{pkg.name} Story</h3></div>{pkg.isVisible && <label className="flex items-center gap-2 bg-slate-950 text-white px-5 py-2 rounded-full cursor-pointer font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black"><span className="text-[10px] font-black uppercase tracking-widest font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black">Featured</span><input type="checkbox" checked={pkg.isHighlighted} onChange={(e) => updatePackage(pkg.id, 'isHighlighted', e.target.checked)} className="rounded font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black" /></label>}</div>
-                    {pkg.isVisible && (
-                      <div className="grid md:grid-cols-2 gap-12 font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black">
-                        <div className="space-y-6 font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black">
-                          <input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, 'name', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl font-bold font-serif text-lg outline-none font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black" />
-                          <input type="text" value={pkg.price} onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl font-serif text-3xl font-bold text-indigo-700 outline-none font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black" />
-                          <textarea value={pkg.description} onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)} className="w-full p-4 bg-slate-50 rounded-xl italic text-sm resize-none outline-none font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black" />
+            ) : (
+              <div className="space-y-4">
+                {filteredQuotes.map(quote => {
+                  const status = getQuoteStatus(quote);
+                  const isDeleting = deletingId === quote.id;
+                  return (
+                    <div key={quote.id} className="bg-white rounded-[2rem] border border-slate-100 p-6 flex items-center gap-6 group hover:shadow-md transition-all">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-black text-slate-950 truncate">{quote.clientName || 'Untitled'}</h3>
+                          <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${status.className}`}>{status.label}</span>
                         </div>
-                        <textarea value={pkg.features.join('\n')} onChange={(e) => updatePackageFeatures(pkg.id, e.target.value.split('\n'))} className="w-full p-6 bg-slate-50 rounded-2xl text-sm leading-loose min-h-[200px] outline-none font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black font-sans font-black" placeholder="Features (one per line)" />
+                        <div className="flex items-center gap-4 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                          <span><Eye size={10} className="inline mr-1"/>{quote.views || 0} views</span>
+                          <span>Updated {getTimeAgo(quote.updatedAt)}</span>
+                          {quote.lastViewedAt && <span>Last viewed {getTimeAgo(quote.lastViewedAt)}</span>}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => toggleQuoteActive(quote.id, quote.isActive !== false)}
+                          title={quote.isActive === false ? 'Activate' : 'Deactivate'}
+                          className={`p-2 rounded-xl transition-all ${quote.isActive === false ? 'bg-slate-100 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600' : 'bg-emerald-50 text-emerald-600 hover:bg-rose-50 hover:text-rose-500'}`}
+                        >
+                          <Power size={14}/>
+                        </button>
+                        <button
+                          onClick={() => resetExpiry(quote.id)}
+                          title="Reset expiry to today"
+                          className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-all"
+                        >
+                          <RefreshCw size={14}/>
+                        </button>
+                        <button onClick={() => handleDuplicate(quote)} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Copy size={14}/></button>
+                        <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); setView('editor'); window.location.hash = `#/quote/${quote.id}`; }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Edit3 size={14}/></button>
+                        <button onClick={() => { setProposalData(quote); setCurrentQuoteId(quote.id); setView('preview'); window.location.hash = `#/quote/${quote.id}`; }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"><Eye size={14}/></button>
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}${window.location.pathname}#/quote/${quote.id}`;
+                            navigator.clipboard.writeText(url);
+                            setCopyFeedback(true);
+                            setTimeout(() => setCopyFeedback(false), 2000);
+                          }}
+                          className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-all"
+                        >
+                          <Share2 size={14}/>
+                        </button>
+                        {isDeleting ? (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleDelete(quote.id)} className="px-3 py-2 rounded-xl bg-rose-500 text-white text-[10px] font-black uppercase">Confirm</button>
+                            <button onClick={() => setDeletingId(null)} className="px-3 py-2 rounded-xl bg-slate-100 text-slate-500 text-[10px] font-black uppercase">Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeletingId(quote.id)} className="p-2 rounded-xl bg-slate-50 text-slate-300 hover:bg-rose-50 hover:text-rose-400 transition-all"><Trash2 size={14}/></button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </section>
+            )}
           </div>
         </div>
       )}
 
-      {view === 'preview' && (
-        <div className="min-h-screen bg-white relative selection:bg-[#C5A059]/20 font-sans leading-relaxed">
-          {notFound ? (
-            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-sans">
-              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100">
-                <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><XCircle size={40} strokeWidth={1} /></div>
-                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif">Proposal Not Found</h1>
-                <p className="text-slate-500 mb-10 font-medium">The proposal you are looking for has been removed or the link is incorrect.</p>
-                <button onClick={() => { window.location.hash = ''; setView('dashboard'); }} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-sans">Return to Portal</button>
-              </div>
+      {/* ---- EDITOR ---- */}
+      {view === 'editor' && isAdmin && (
+        <div className="max-w-4xl mx-auto p-8 space-y-10">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+            <h2 className="text-2xl font-serif italic font-black text-slate-950 mb-2">Client & Proposal</h2>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Client Name</label>
+              <input value={proposalData.clientName} onChange={e => updateField('clientName', e.target.value)} className="w-full border border-slate-200 rounded-2xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-slate-300"/>
             </div>
-          ) : isExpired ? (
-            <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] px-6 font-black font-sans font-black">
-              <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl text-center border border-slate-100 font-black">
-                <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-10"><AlertCircle size={40} strokeWidth={1} /></div>
-                <h1 className="text-3xl font-light mb-6 text-slate-950 font-serif font-black font-black font-black">Proposal Expired</h1>
-                <p className="text-slate-500 mb-10 font-medium font-black font-black font-black font-black font-black">This proposal for <span className="text-slate-950 font-black font-sans font-black font-black font-black font-black">{proposalData.clientName}</span> is inactive.</p>
-                {isAdmin && currentQuoteId ? (
-                  <div className="space-y-4">
-                    <button
-                      onClick={() => resetExpiry(currentQuoteId)}
-                      className="w-full bg-amber-500 text-white py-6 rounded-2xl font-bold hover:bg-amber-600 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3"
-                    >
-                      <RefreshCw size={16} /> Extend 30 Days
-                    </button>
-                    <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black font-black">Contact Studio</button>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Vision Statement</label>
+              <textarea rows={4} value={proposalData.visionStatement} onChange={e => updateField('visionStatement', e.target.value)} className="w-full border border-slate-200 rounded-2xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-slate-300 resize-none"/>
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Hero Image URL</label>
+              <input value={proposalData.heroImage} onChange={e => updateField('heroImage', e.target.value)} className="w-full border border-slate-200 rounded-2xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-slate-300"/>
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Loom Video URL</label>
+              <input value={proposalData.loomUrl} onChange={e => updateField('loomUrl', e.target.value)} placeholder="https://www.loom.com/share/..." className="w-full border border-slate-200 rounded-2xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-slate-300"/>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Show Video Invite</label>
+              <button onClick={() => updateField('showVideoInvite', !proposalData.showVideoInvite)} className={`w-12 h-6 rounded-full transition-all relative ${proposalData.showVideoInvite ? 'bg-[#C5A059]' : 'bg-slate-200'}`}>
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${proposalData.showVideoInvite ? 'left-7' : 'left-1'}`}/>
+              </button>
+            </div>
+            {proposalData.showVideoInvite && (
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Video Invite Text</label>
+                <input value={proposalData.videoInviteText} onChange={e => updateField('videoInviteText', e.target.value)} className="w-full border border-slate-200 rounded-2xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-slate-300"/>
+              </div>
+            )}
+          </div>
+
+          {/* Days Editor */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-serif italic font-black text-slate-950">Coverage Days</h2>
+              <button onClick={addDay} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#C5A059] hover:text-slate-950 transition-colors"><Plus size={14}/> Add Day</button>
+            </div>
+            {proposalData.days.map(day => (
+              <div key={day.id} className="border border-slate-100 rounded-2xl p-6 space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Label</label>
+                    <input value={day.label} onChange={e => updateDay(day.id, 'label', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
                   </div>
-                ) : (
-                  <button onClick={() => openWhatsApp(`Hi! Our proposal for ${proposalData.clientName} expired.`)} className="w-full bg-slate-950 text-white py-6 rounded-2xl font-bold hover:opacity-90 transition shadow-xl active:scale-95 text-[11px] font-black uppercase tracking-widest font-black font-black">Contact Studio</button>
-                )}
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Date</label>
+                    <input value={day.date} onChange={e => updateDay(day.id, 'date', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Description</label>
+                    <input value={day.desc} onChange={e => updateDay(day.id, 'desc', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Highlight</label>
+                  <button onClick={() => updateDay(day.id, 'highlight', !day.highlight)} className={`w-10 h-5 rounded-full transition-all relative ${day.highlight ? 'bg-[#C5A059]' : 'bg-slate-200'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${day.highlight ? 'left-5' : 'left-0.5'}`}/>
+                  </button>
+                  <button onClick={() => removeDay(day.id)} className="ml-auto text-slate-300 hover:text-rose-400 transition-colors"><Trash2 size={14}/></button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Packages Editor */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+            <h2 className="text-2xl font-serif italic font-black text-slate-950">Packages</h2>
+            {proposalData.packages.map(pkg => (
+              <div key={pkg.id} className="border border-slate-100 rounded-2xl p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Name</label>
+                    <input value={pkg.name} onChange={e => updatePackage(pkg.id, 'name', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Price</label>
+                    <input value={pkg.price} onChange={e => updatePackage(pkg.id, 'price', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Delivery Timeline</label>
+                  <input value={pkg.deliveryTimeline || ''} onChange={e => updatePackage(pkg.id, 'deliveryTimeline', e.target.value)} placeholder="e.g. 3–6 Months" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Description</label>
+                  <textarea rows={2} value={pkg.description} onChange={e => updatePackage(pkg.id, 'description', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none resize-none"/>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Features (one per line)</label>
+                  <textarea rows={6} value={pkg.features.join('\n')} onChange={e => updatePackageFeatures(pkg.id, e.target.value.split('\n'))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none resize-none font-mono"/>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Highlighted</label>
+                    <button onClick={() => updatePackage(pkg.id, 'isHighlighted', !pkg.isHighlighted)} className={`w-10 h-5 rounded-full transition-all relative ${pkg.isHighlighted ? 'bg-[#C5A059]' : 'bg-slate-200'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pkg.isHighlighted ? 'left-5' : 'left-0.5'}`}/>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Visible</label>
+                    <button onClick={() => updatePackage(pkg.id, 'isVisible', !pkg.isVisible)} className={`w-10 h-5 rounded-full transition-all relative ${pkg.isVisible ? 'bg-[#C5A059]' : 'bg-slate-200'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pkg.isVisible ? 'left-5' : 'left-0.5'}`}/>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Reviews Editor */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-serif italic font-black text-slate-950">Reviews</h2>
+              <button onClick={() => setProposalData(prev => ({ ...prev, reviews: [...prev.reviews, { id: Date.now(), author: "Client Name", wedding: "Wedding", couplePhoto: "", text: "Review text here." }]}))} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#C5A059] hover:text-slate-950 transition-colors"><Plus size={14}/> Add Review</button>
+            </div>
+            {proposalData.reviews.map(review => (
+              <div key={review.id} className="border border-slate-100 rounded-2xl p-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Author</label>
+                    <input value={review.author} onChange={e => updateReview(review.id, 'author', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Wedding / Event Label</label>
+                    <input value={review.wedding || ''} onChange={e => updateReview(review.id, 'wedding', e.target.value)} placeholder="e.g. South Asian Wedding 2024" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Couple Photo URL (optional)</label>
+                  <input value={review.couplePhoto || ''} onChange={e => updateReview(review.id, 'couplePhoto', e.target.value)} placeholder="https://..." className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Review Text</label>
+                  <textarea rows={3} value={review.text} onChange={e => updateReview(review.id, 'text', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none resize-none"/>
+                </div>
+                <button onClick={() => setProposalData(prev => ({ ...prev, reviews: prev.reviews.filter(r => r.id !== review.id)}))} className="text-slate-300 hover:text-rose-400 transition-colors"><Trash2 size={14}/></button>
+              </div>
+            ))}
+          </div>
+
+          {/* Work Links Editor */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-serif italic font-black text-slate-950">Work Links</h2>
+              <button onClick={() => setProposalData(prev => ({ ...prev, workLinks: [...prev.workLinks, { id: Date.now(), title: "New Link", url: "", note: "" }]}))} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#C5A059] hover:text-slate-950 transition-colors"><Plus size={14}/> Add Link</button>
+            </div>
+            {proposalData.workLinks.map(link => (
+              <div key={link.id} className="border border-slate-100 rounded-2xl p-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Title</label>
+                    <input value={link.title} onChange={e => updateWorkLink(link.id, 'title', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Note / Badge</label>
+                    <input value={link.note || ''} onChange={e => updateWorkLink(link.id, 'note', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">URL</label>
+                  <input value={link.url} onChange={e => updateWorkLink(link.id, 'url', e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                </div>
+                <button onClick={() => setProposalData(prev => ({ ...prev, workLinks: prev.workLinks.filter(l => l.id !== link.id)}))} className="text-slate-300 hover:text-rose-400 transition-colors"><Trash2 size={14}/></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- PREVIEW / CLIENT VIEW ---- */}
+      {view === 'preview' && (
+        <div className="bg-[#fdfdfc]">
+
+          {/* Expired / Not Found banners */}
+          {notFound && (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+              <div className="text-center max-w-md">
+                <XCircle size={48} className="mx-auto mb-6 text-slate-300"/>
+                <h2 className="text-3xl font-serif italic font-black text-slate-950 mb-4">Proposal Not Found</h2>
+                <p className="text-slate-500 text-sm">This proposal link is no longer available or may have been deactivated.</p>
               </div>
             </div>
-          ) : (
-            <div className="font-sans">
-              <div className="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden bg-[#0d0d0d]">
-                <div className="absolute inset-0 opacity-60"><img src={proposalData.heroImage} className="w-full h-full object-cover transform scale-105" alt="Hero" /></div>
-                <div className="relative z-10 text-center text-white px-8">
-                  <img src={LOGO_URL} alt="Spark" className="mx-auto h-12 md:h-20 mb-10 object-contain drop-shadow-xl" />
-                  <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] mb-12 font-serif font-light italic leading-none">{proposalData.clientName}</h1>
-                  <div className="max-w-lg mx-auto border-t border-white/20 pt-12"><p className="text-sm md:text-xl font-light tracking-[0.2em] uppercase opacity-90 font-black">Bespoke Cinematic Narrative</p></div>
+          )}
+
+          {isExpired && !notFound && (
+            <div className="bg-amber-50 border-b border-amber-100 px-6 py-4 text-center">
+              <p className="text-amber-700 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                <AlertCircle size={14}/> This proposal has expired. Please contact us for an updated quote.
+              </p>
+            </div>
+          )}
+
+          {!notFound && (
+            <div>
+              {/* HERO */}
+              <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                  <img src={proposalData.heroImage} alt="Hero" className="w-full h-full object-cover"/>
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80"/>
                 </div>
-                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-40"><div className="w-[1px] h-20 bg-white"></div></div>
-              </div>
-
-              <section className="max-w-5xl mx-auto py-24 md:py-32 px-8 text-center leading-relaxed">
-                <h2 className="text-[11px] tracking-[0.6em] uppercase text-[#C5A059] font-black mb-10 md:mb-16">The Vision</h2>
-                <p className="text-3xl md:text-5xl lg:text-6xl text-[#222222] font-light italic font-serif leading-[1.3]">"{proposalData.visionStatement}"</p>
-              </section>
-
-              {/* ENHANCED LOOM SECTION */}
-              <section className="max-w-6xl mx-auto pb-24 md:pb-32 px-8">
-                <div className="relative aspect-video bg-slate-900 rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl group cursor-pointer transition-all duration-500 hover:scale-[1.01]">
-                   {(!videoStarted && proposalData.loomUrl) ? (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-8 bg-black/40 backdrop-blur-[2px]" onClick={() => setVideoStarted(true)}>
-                        <div className="absolute top-8 left-8 flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                            <Sparkles size={14} className="text-[#C5A059]" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Personal Video Guide</span>
-                        </div>
-                        
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-[#C5A059]/30 rounded-full blur-2xl group-hover:bg-[#C5A059]/50 transition-all"></div>
-                            <button className="relative w-24 h-24 md:w-32 md:h-32 bg-white rounded-full flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-110 animate-pulse-gold">
-                                <Play size={40} fill="#121212" strokeWidth={0} className="ml-2" />
-                            </button>
-                        </div>
-                        
-                        <div className="mt-10 max-w-sm">
-                            <h4 className="text-2xl md:text-4xl text-white font-serif italic mb-4 leading-tight">A short message for {proposalData.clientName.split('&')[0]}</h4>
-                            <p className="text-[10px] text-white/70 font-black tracking-[0.4em] uppercase leading-relaxed">Waqar walks you through your custom vision</p>
-                        </div>
-                    </div>
-                  ) : proposalData.loomUrl ? (
-                    <iframe title="Loom" src={proposalData.loomUrl.replace("loom.com/share", "loom.com/embed") + "?autoplay=1"} frameBorder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowFullScreen className="w-full h-full"></iframe>
-                  ) : (
-                    <div className="p-10 text-center flex flex-col items-center justify-center h-full">
-                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl text-[#C5A059]"><Play size={32} fill="currentColor" strokeWidth={0} /></div>
-                      <h4 className="text-2xl font-light mb-4 text-slate-900 font-serif leading-none">Personal Message</h4>
-                      <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Cinematic Intro Coming Soon</p>
+                <div className="relative z-10 text-center px-8 max-w-4xl mx-auto">
+                  <img src={LOGO_URL} alt="Spark Studios" className="h-12 mx-auto mb-16 brightness-0 invert opacity-80"/>
+                  <p className="text-[10px] font-black text-white/60 tracking-[0.6em] uppercase mb-8">A Bespoke Proposal For</p>
+                  <h1 className="text-6xl md:text-8xl font-serif italic text-white font-black leading-none mb-16">{proposalData.clientName}</h1>
+                  {proposalData.showVideoInvite && proposalData.loomUrl && (
+                    <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-8 py-4 text-white text-xs font-black uppercase tracking-[0.3em]">
+                      <Play size={14} fill="white"/>
+                      {proposalData.videoInviteText || "Watch this first"}
                     </div>
                   )}
-                  {/* Decorative Background for the Video Cover */}
-                  {!videoStarted && <img src={proposalData.heroImage} className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale-[40%]" alt="Video Cover" />}
                 </div>
+              </div>
 
-                {/* DYNAMIC VIDEO INVITE TEXT */}
-                {proposalData.showVideoInvite && proposalData.videoInviteText && (
-                    <div className="mt-8 text-center animate-in fade-in slide-in-from-top-4 duration-1000">
-                        <p className="text-xl md:text-2xl font-serif italic text-slate-800 tracking-tight">
-                            {proposalData.videoInviteText}
-                        </p>
-                        <div className="w-12 h-[1px] bg-[#C5A059]/30 mx-auto mt-4"></div>
+              {/* LOOM VIDEO */}
+              {proposalData.loomUrl && (
+                <section className="bg-slate-950 py-24 md:py-32 px-8">
+                  <div className="max-w-4xl mx-auto text-center">
+                    <p className="text-[10px] font-black text-slate-500 tracking-[0.5em] uppercase mb-6">Personal Message</p>
+                    <h2 className="text-4xl md:text-5xl font-serif italic text-white font-black mb-12">{proposalData.videoInviteText || "A Message For You"}</h2>
+                    <div className="relative rounded-[2rem] overflow-hidden shadow-2xl bg-black aspect-video">
+                      {!videoStarted ? (
+                        <div className="absolute inset-0 flex items-center justify-center cursor-pointer group" onClick={() => setVideoStarted(true)}>
+                          <img src={proposalData.heroImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30"/>
+                          <div className="relative z-10 w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+                            <Play size={28} className="text-slate-950 ml-1" fill="currentColor"/>
+                          </div>
+                        </div>
+                      ) : (
+                        <iframe
+                          src={proposalData.loomUrl.replace('share', 'embed') + '?autoplay=1&hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true'}
+                          className="w-full h-full"
+                          frameBorder="0"
+                          allowFullScreen
+                        />
+                      )}
                     </div>
-                )}
+                  </div>
+                </section>
+              )}
+
+              {/* VISION */}
+              <section className="max-w-4xl mx-auto py-24 md:py-32 px-8 text-center">
+                <p className="text-[10px] font-black text-slate-400 tracking-[0.5em] uppercase mb-8">The Vision</p>
+                <p className="text-2xl md:text-3xl font-serif italic text-slate-800 leading-[1.7] font-black">{proposalData.visionStatement}</p>
               </section>
 
-              <section className="bg-[#fcfcfb] py-24 md:py-32 px-8 border-y border-slate-100 leading-normal">
-                <div className="max-w-7xl mx-auto">
+              {/* COVERAGE DAYS */}
+              <section className="bg-slate-950 py-24 md:py-32 px-8">
+                <div className="max-w-6xl mx-auto">
                   <div className="text-center mb-16 md:mb-24">
-                    <h2 className="text-4xl md:text-6xl font-light mb-8 tracking-tight text-slate-950 leading-none italic font-serif">The Itinerary</h2>
-                    <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Documenting the Journey</p>
+                    <h2 className="text-4xl md:text-6xl font-serif italic text-white font-black leading-none mb-8">Coverage Plan</h2>
+                    <p className="text-[11px] font-black text-slate-500 tracking-[0.5em] uppercase">Your Days, Our Commitment</p>
                   </div>
-                  <div className={`flex flex-wrap ${proposalData.days.length === 1 ? 'justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-8`}>
-                    {proposalData.days.map((day) => (
-                      <div key={day.id} className={`relative p-10 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-700 hover:shadow-2xl hover:-translate-y-4 ${day.highlight ? 'ring-1 ring-[#C5A059]/30' : ''} ${proposalData.days.length === 1 ? 'max-w-md w-full' : ''}`}>
-                        <div className={`w-16 h-16 flex items-center justify-center rounded-3xl mb-12 ${day.highlight ? 'bg-[#C5A059] text-white shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>{IconMap[day.icon] || <Clock size={28} />}</div>
-                        <h4 className="font-black text-[15px] uppercase tracking-[0.4em] text-[#C5A059] mb-4">{day.label}</h4>
-                        <p className="text-[#121212] text-[18px] font-black mb-4 tracking-widest uppercase">{day.date}</p>
-                        <p className={`text-2xl md:text-3xl font-serif italic font-medium leading-relaxed`}>{day.desc}</p>
-                        {day.highlight && <div className="mt-12 pt-12 border-t border-slate-50 font-black text-[11px] text-slate-800 tracking-widest uppercase leading-none">Continuous Production Team</div>}
+                  <div className={`grid gap-6 ${proposalData.days.length <= 2 ? 'md:grid-cols-2' : proposalData.days.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
+                    {proposalData.days.map(day => (
+                      <div key={day.id} className={`relative p-10 rounded-[2.5rem] border transition-all ${day.highlight ? 'bg-[#C5A059] border-[#C5A059] shadow-2xl shadow-[#C5A059]/30 scale-105' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                        {day.highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-[#C5A059] text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Main Day</div>}
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-8 ${day.highlight ? 'bg-white/20 text-white' : 'bg-white/10 text-[#C5A059]'}`}>
+                          {IconMap[day.icon] || <Clock size={18}/>}
+                        </div>
+                        <p className={`text-[10px] font-black uppercase tracking-[0.3em] mb-3 ${day.highlight ? 'text-white/70' : 'text-slate-500'}`}>{day.date}</p>
+                        <h3 className={`text-3xl font-serif italic font-black mb-4 leading-none ${day.highlight ? 'text-white' : 'text-white'}`}>{day.label}</h3>
+                        <p className={`text-sm font-black ${day.highlight ? 'text-white/80' : 'text-slate-400'}`}>{day.desc}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </section>
 
-              <section className="max-w-[1440px] mx-auto py-24 md:py-32 px-8">
-                <div className="text-center mb-24 md:mb-32">
-                  <h2 className="text-5xl md:text-8xl font-light mb-10 text-slate-950 tracking-tighter leading-none italic font-serif">The Collections</h2>
-                  <div className="flex items-center justify-center gap-10 text-[11px] font-black text-slate-400 tracking-[0.6em] uppercase leading-none"><div className="h-[1px] w-12 bg-slate-200"></div>Curated Investment<div className="h-[1px] w-12 bg-slate-200"></div></div>
+              {/* PACKAGES */}
+              <section className="max-w-7xl mx-auto py-24 md:py-32 px-8">
+                <div className="text-center mb-16 md:mb-24">
+                  <h2 className="text-4xl md:text-6xl font-serif italic font-black text-slate-950 leading-none mb-8">Your Collection</h2>
+                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Three Paths to Perfection</p>
                 </div>
-                <div className={`grid gap-10 items-stretch justify-center font-black ${
-                  proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-2xl mx-auto grid-cols-1' : 
-                  proposalData.packages.filter(p => p.isVisible).length === 2 ? 'max-w-5xl mx-auto grid-cols-1 md:grid-cols-2' : 
-                  'lg:grid-cols-3 max-w-full'
-                }`}>
-                  {proposalData.packages.filter(p => p.isVisible).map((item) => (
-                    <div key={item.id} className={`relative flex flex-col p-10 md:p-12 rounded-[4rem] border transition-all duration-1000 ${item.isHighlighted ? 'bg-white border-[#C5A059]/40 lg:scale-105 z-10 shadow-2xl' : 'bg-white border-slate-100'}`}>
-                      {item.isHighlighted && <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#C5A059] text-white px-12 py-3 rounded-full text-[10px] font-black tracking-[0.5em] shadow-xl uppercase">Recommended</div>}
-                      <div className="mb-14">
-                        <h3 className="text-3xl md:text-4xl font-light mb-6 text-slate-950 font-serif leading-none italic">{item.name} Story</h3>
-                        <div className="text-6xl md:text-8xl font-serif mb-10 text-slate-950 tracking-tighter font-black leading-none">{item.price}</div>
-                        <p className="text-base md:text-lg text-slate-500 leading-relaxed italic font-serif font-medium">{item.description}</p>
-                      </div>
-                      <div className="flex-grow space-y-7 mb-16 border-t border-slate-50 pt-16 font-black">
-                        {item.features.filter(f => f.trim() !== "").map((feature, fIdx) => (
-                          <div key={fIdx} className="flex items-start gap-5 font-black">
-                            <div className={`mt-1.5 flex-shrink-0 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300'}`}><CheckCircle size={22} strokeWidth={1.5} /></div>
-                            <span className="text-base md:text-lg text-[#333333] tracking-tight font-medium">{feature}</span>
+                <div className={`grid gap-8 ${proposalData.packages.filter(p => p.isVisible).length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : 'md:grid-cols-3'}`}>
+                  {proposalData.packages.filter(p => p.isVisible).map(item => (
+                    <div key={item.id} className={`relative flex flex-col rounded-[3rem] border overflow-hidden transition-all ${item.isHighlighted ? 'bg-slate-950 border-[#C5A059]/30 package-card-featured' : 'bg-white border-slate-100 hover:shadow-xl'}`}>
+                      {item.isHighlighted && (
+                        <div className="bg-[#C5A059] text-white text-[9px] font-black tracking-[0.4em] uppercase py-3 text-center">Most Popular</div>
+                      )}
+                      <div className="p-10 md:p-14 flex flex-col flex-1">
+                        <div className="mb-10">
+                          <p className={`text-[10px] font-black uppercase tracking-[0.4em] mb-4 ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-400'}`}>The</p>
+                          <h3 className={`text-5xl font-serif italic font-black leading-none mb-2 ${item.isHighlighted ? 'text-white' : 'text-slate-950'}`}>{item.name}</h3>
+                          <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${item.isHighlighted ? 'text-[#C5A059]' : 'text-slate-300'}`}>Story</p>
+                        </div>
+                        <div className="mb-10">
+                          <span className={`text-5xl md:text-6xl font-black ${item.isHighlighted ? 'text-white' : 'text-slate-950'}`}>{item.price}</span>
+                        </div>
+
+                        {/* Delivery Timeline Badge */}
+                        {item.deliveryTimeline && (
+                          <div className={`flex items-center gap-2 mb-8 px-4 py-3 rounded-2xl w-fit ${item.isHighlighted ? 'bg-white/10 text-white/80' : 'bg-[#C5A059]/8 text-[#C5A059]'}`}>
+                            <Clock size={13} className={item.isHighlighted ? 'text-[#C5A059]' : 'text-[#C5A059]'}/>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Delivery: {item.deliveryTimeline}</span>
                           </div>
-                        ))}
+                        )}
+
+                        <p className={`text-sm leading-relaxed mb-10 font-medium ${item.isHighlighted ? 'text-slate-400' : 'text-slate-500'}`}>{item.description}</p>
+                        <div className="space-y-4 flex-1 mb-10">
+                          {item.features.filter(f => f.trim()).map((feature, i) => (
+                            <div key={i} className="flex items-start gap-4">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${item.isHighlighted ? 'bg-[#C5A059]/20' : 'bg-slate-50'}`}>
+                                <Check size={11} className="text-[#C5A059]"/>
+                              </div>
+                              <p className={`text-[13px] leading-relaxed font-medium ${item.isHighlighted ? 'text-slate-300' : 'text-slate-600'}`}>{feature}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <button onClick={() => openWhatsApp(`Hi Waqar! I'd like to book the ${item.name} Story.`)} className="w-full py-8 rounded-[2.5rem] font-black text-[11px] tracking-[0.5em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] transition-all">Inquire Selection <MessageCircle size={20} className="inline-block ml-2" /></button>
                       </div>
-                      <button onClick={() => openWhatsApp(`Hi Waqar! I'd like to book the ${item.name} Story.`)} className="w-full py-8 rounded-[2.5rem] font-black text-[11px] tracking-[0.5em] uppercase shadow-xl bg-[#121212] text-white hover:bg-[#C5A059] transition-all">Inquire Selection <MessageCircle size={20} className="inline-block ml-2" /></button>
                     </div>
                   ))}
                 </div>
               </section>
 
+              {/* THE PROCESS */}
               <section className="max-w-6xl mx-auto py-24 md:py-32 px-8">
                 <div className="text-center mb-16 md:mb-24">
                   <h2 className="text-4xl md:text-6xl font-light mb-8 leading-none italic font-serif">The Process</h2>
@@ -878,8 +1067,68 @@ const App = () => {
                 </div>
               </section>
 
+              {/* ---- ABOUT WAQAR ---- */}
+              <section className="bg-slate-950 py-24 md:py-32 px-8 overflow-hidden">
+                <div className="max-w-6xl mx-auto">
+                  <div className="grid md:grid-cols-2 gap-16 md:gap-24 items-center">
+                    {/* Photo */}
+                    <div className="relative">
+                      <div className="relative rounded-[3rem] overflow-hidden aspect-[3/4] max-w-sm mx-auto md:mx-0 shadow-2xl">
+                        <img 
+                          src={WAQAR_PHOTO}
+                          alt="Waqar — Founder, The Spark Studios"
+                          className="w-full h-full object-cover object-top"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"/>
+                        <div className="absolute bottom-8 left-8 right-8">
+                          <div className="flex gap-1 mb-3">
+                            {[...Array(5)].map((_, i) => <Star key={i} size={12} fill="#C5A059" className="text-[#C5A059]"/>)}
+                          </div>
+                          <p className="text-white font-black text-[10px] uppercase tracking-[0.3em]">100+ Productions</p>
+                        </div>
+                      </div>
+                      {/* Decorative accent */}
+                      <div className="absolute -top-6 -right-6 w-32 h-32 border border-[#C5A059]/20 rounded-[2rem] hidden md:block"/>
+                      <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-[#C5A059]/10 rounded-2xl hidden md:block"/>
+                    </div>
+
+                    {/* Text */}
+                    <div className="text-white">
+                      <p className="text-[10px] font-black text-[#C5A059] tracking-[0.5em] uppercase mb-6">Behind the Lens</p>
+                      <h2 className="text-5xl md:text-6xl font-serif italic font-black leading-none mb-10">
+                        Meet Waqar.
+                      </h2>
+                      <div className="space-y-6 text-slate-300 text-base md:text-lg leading-relaxed font-medium">
+                        <p>
+                          I've had the privilege of being in the room for over a hundred weddings — from intimate Nikkah ceremonies to multi-day South Asian celebrations spanning hundreds of guests. Each one has shaped how I see, anticipate, and document the moments that matter most.
+                        </p>
+                        <p>
+                          My approach is cinematic but never intrusive. I believe the camera should reveal what's already there — the unscripted glances, the emotion between the chaos — not manufacture it.
+                        </p>
+                        <p>
+                          Every proposal I send is personal. Every film I deliver is built to last a lifetime.
+                        </p>
+                      </div>
+                      <div className="mt-12 grid grid-cols-3 gap-6">
+                        {[
+                          { label: "Productions", value: "100+" },
+                          { label: "Years Experience", value: "10+" },
+                          { label: "Satisfaction", value: "5★" }
+                        ].map((stat, i) => (
+                          <div key={i} className="border border-white/10 rounded-2xl p-5 text-center">
+                            <p className="text-3xl font-serif italic font-black text-[#C5A059] mb-1">{stat.value}</p>
+                            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">{stat.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* SELECTED STORIES */}
               {proposalData.workLinks && proposalData.workLinks.length > 0 && (
-                <section className="bg-slate-950 py-24 md:py-32 px-8 font-black">
+                <section className="bg-slate-950 py-24 md:py-32 px-8 font-black border-t border-white/5">
                   <div className="max-w-5xl mx-auto font-black">
                     <div className="text-center mb-16 font-serif">
                       <h2 className="text-3xl md:text-5xl italic text-white mb-8 font-serif leading-none font-black">Selected Stories</h2>
@@ -903,32 +1152,21 @@ const App = () => {
                 </section>
               )}
 
+              {/* KIND WORDS — now a carousel with Google badge */}
               <section className="bg-[#fafaf9] py-24 md:py-32 px-8 border-y border-slate-100">
                 <div className="max-w-6xl mx-auto">
-                  <div className="text-center mb-20 md:mb-24 font-serif">
-                    <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 font-serif leading-none font-black">Kind Words</h2>
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#C5A059" className="text-[#C5A059]" />)}
+                  <div className="text-center mb-16 md:mb-20">
+                    <h2 className="text-4xl md:text-6xl font-serif italic mb-8 text-slate-950 leading-none font-black">Kind Words</h2>
+                    <div className="flex flex-col items-center gap-4">
+                      <GoogleReviewsBadge />
+                      <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Trusted by Spark Couples</p>
                     </div>
-                    <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase font-black font-black">Trusted by Spark Couples</p>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-10 md:gap-14 font-black">
-                    {proposalData.reviews.map((review) => (
-                      <div key={review.id} className="relative p-12 md:p-16 bg-white rounded-[3rem] border border-slate-50 shadow-sm group font-black font-black">
-                        <Quote className="absolute top-10 left-10 text-slate-50 group-hover:text-slate-100 transition-colors" size={80} strokeWidth={0.5} />
-                        <div className="relative z-10 font-black leading-relaxed">
-                          <p className="text-xl md:text-2xl text-[#333333] leading-[1.8] italic font-serif font-black">"{review.text}"</p>
-                          <div className="flex items-center gap-4 border-t border-slate-50 pt-8 font-black font-black">
-                            <div className="h-1px w-12 bg-[#C5A059]"></div>
-                            <p className="font-black text-[12px] uppercase tracking-[0.3em] text-[#C5A059] font-sans font-black leading-none font-black">{review.author}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <ReviewCarousel reviews={proposalData.reviews} />
                 </div>
               </section>
 
+              {/* FOOTER */}
               <footer className="bg-[#0a0a0a] text-white py-32 md:py-48 px-8 overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 <div className="max-w-6xl mx-auto relative z-10">
@@ -953,7 +1191,7 @@ const App = () => {
                       <button onClick={() => openWhatsApp(`Hi Spark Studios! We'd like to schedule a Vision Call for ${proposalData.clientName}.`)} className="w-full bg-[#C5A059] text-white py-8 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-950 transition-all active:scale-95 flex items-center justify-center gap-4">Connect on WhatsApp <MessageCircle size={20} /></button>
                     </div>
                   </div>
-                  <div className="mt-32 md:mt-48 pt-20 border-t border-white/10 text-center font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-black font-black font-black">The Spark Studios &copy; 2026</p></div>
+                  <div className="mt-32 md:mt-48 pt-20 border-t border-white/10 text-center font-black"><p className="text-[11px] uppercase tracking-[1em] opacity-40 font-black">The Spark Studios &copy; 2026</p></div>
                 </div>
               </footer>
             </div>
