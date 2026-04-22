@@ -231,21 +231,21 @@ const App = () => {
       { 
         id: 2, 
         author: "Hanni", 
-        wedding: "Wedding",
+        wedding: "Barat & Walima",
         couplePhoto: "",
         text: "We are beyond happy with our wedding photos and videos. This team is incredibly talented, made us feel so comfortable in front of the camera, and truly brought our dream wedding to life." 
       },
       {
         id: 3,
         author: "Hafsa",
-        wedding: "Wedding",
+        wedding: "Nikah & Reception",
         couplePhoto: "",
         text: "They handled our event beautifully with exceptional professionalism. The photographer and videographer did an incredible job capturing every special moment. The entire experience was seamless and stress-free from start to finish."
       },
       {
         id: 4,
         author: "Haider",
-        wedding: "Photo & Video Package",
+        wedding: "Barat & Walima",
         couplePhoto: "",
         text: "Waqar and his team are doing amazing work. Professional, great communication, and the picture quality was incredible. I expected one video — they delivered four, each with separate event highlights. The music selections were spot on. Would easily recommend them to anyone. You won't be disappointed."
       }
