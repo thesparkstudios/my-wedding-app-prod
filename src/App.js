@@ -1139,7 +1139,7 @@ const App = () => {
                           <div className="flex gap-1 mb-3">
                             {[...Array(5)].map((_, i) => <Star key={i} size={12} fill="#C5A059" className="text-[#C5A059]"/>)}
                           </div>
-                          <p className="text-white font-black text-[10px] uppercase tracking-[0.3em]">100+ Productions</p>
+                          <p className="text-white font-black text-[10px] uppercase tracking-[0.3em]">150+ Productions</p>
                         </div>
                       </div>
                       {/* Decorative accent */}
@@ -1166,7 +1166,7 @@ const App = () => {
                       </div>
                       <div className="mt-12 grid grid-cols-3 gap-6">
                         {[
-                          { label: "Productions", value: "100+" },
+                          { label: "Productions", value: "150+" },
                           { label: "Years Experience", value: "10+" },
                           { label: "Satisfaction", value: "5★" }
                         ].map((stat, i) => (
