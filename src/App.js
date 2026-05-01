@@ -620,6 +620,14 @@ const App = () => {
         body { font-family: 'Montserrat', sans-serif; -webkit-font-smoothing: antialiased; }
         h1, h2, h3, h4 { font-family: 'Cormorant Garamond', serif !important; }
         .package-card-featured { box-shadow: 0 32px 80px rgba(197,160,89,0.18); }
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #fff !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          section { break-inside: avoid; page-break-inside: avoid; }
+          .min-h-screen { min-height: auto !important; }
+          .sticky { position: relative !important; }
+        }
       `}</style>
 
       {/* ---- ADMIN TOOLBAR ---- */}
@@ -629,7 +637,8 @@ const App = () => {
             <ArrowLeft size={14}/> Dashboard
           </button>
           <div className="flex-1"/>
-          {view === 'preview' && <button onClick={() => setView('editor')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Edit3 size={14}/> Edit</button>}
+          {view === 'preview' && <button onClick={() => setView('editor')} className="no-print flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Edit3 size={14}/> Edit</button>}
+          {view === 'preview' && <button onClick={() => window.print()} className="no-print flex items-center gap-2 bg-[#C5A059]/20 hover:bg-[#C5A059]/30 text-[#C5A059] px-4 py-2 rounded-xl transition-all"><ExternalLink size={14}/> Save as PDF</button>}
           {view === 'editor' && (
             <>
               <button onClick={() => { if (currentQuoteId) { window.open(`${window.location.origin}${window.location.pathname}#/quote/${currentQuoteId}`, '_blank'); } else { alert('Save the quote first to preview it.'); } }} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"><Eye size={14}/> Preview</button>
@@ -1011,16 +1020,17 @@ const App = () => {
               </section>
 
               {/* PACKAGES */}
-              <section className="max-w-7xl mx-auto py-24 md:py-32 px-8">
+              <section className="w-full py-24 md:py-32 px-8">
+                <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16 md:mb-24">
                   <h2 className="text-4xl md:text-6xl font-serif italic font-black text-slate-950 leading-none mb-8">Your Collection</h2>
                   <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Curated For You</p>
                 </div>
                 <div className={`grid gap-8 ${
-                  proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-xl mx-auto' :
-                  proposalData.packages.filter(p => p.isVisible).length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' :
-                  proposalData.packages.filter(p => p.isVisible).length === 4 ? 'md:grid-cols-2 lg:grid-cols-4' :
-                  'md:grid-cols-3'
+                  proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-xl mx-auto grid-cols-1' :
+                  proposalData.packages.filter(p => p.isVisible).length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
+                  proposalData.packages.filter(p => p.isVisible).length >= 4 ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' :
+                  'grid-cols-1 md:grid-cols-3'
                 }`}>
                   {proposalData.packages.filter(p => p.isVisible).map(item => (
                     <div key={item.id} className={`relative flex flex-col rounded-[3rem] border overflow-hidden transition-all ${item.isHighlighted ? 'bg-slate-950 border-[#C5A059]/30 package-card-featured' : 'bg-white border-slate-100 hover:shadow-xl'}`}>
@@ -1060,6 +1070,33 @@ const App = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+                </div>
+              </section>
+
+              {/* ADD-ONS */}
+              <section className="max-w-5xl mx-auto pb-16 md:pb-24 px-8">
+                <div className="border border-[#C5A059]/20 rounded-[3rem] p-10 md:p-14 bg-[#fdfcf9]">
+                  <div className="mb-10">
+                    <p className="text-[10px] font-black text-[#C5A059] tracking-[0.5em] uppercase mb-3">Optional Enhancements</p>
+                    <h3 className="text-3xl md:text-4xl font-serif italic text-slate-950 leading-none">Enhance Your Story</h3>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {[
+                      { label: "Livestreaming", detail: "$150 / hr", note: "3 hour minimum" },
+                      { label: "Live Projector Feed", detail: "$75 / hr", note: "Display the celebration in real time" },
+                      { label: "Wedding Album", detail: "Starting from $500", note: "Heirloom-quality print collection" },
+                      { label: "Extended Pre-Event Shoot", detail: "Inquire", note: "Full 2-hr photo & video session with lead crew prior to your event day" },
+                    ].map((addon, i) => (
+                      <div key={i} className="flex items-start justify-between gap-4 bg-white border border-slate-100 rounded-2xl px-6 py-5">
+                        <div>
+                          <p className="font-black text-[13px] text-slate-900 mb-1">{addon.label}</p>
+                          <p className="text-[11px] text-slate-400 font-medium leading-relaxed">{addon.note}</p>
+                        </div>
+                        <span className="text-[#C5A059] font-black text-[12px] tracking-wide shrink-0 text-right">{addon.detail}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
 
