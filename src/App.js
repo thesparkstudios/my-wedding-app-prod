@@ -807,7 +807,10 @@ const App = () => {
 
           {/* Packages Editor */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
-            <h2 className="text-2xl font-serif italic font-black text-slate-950">Packages</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-serif italic font-black text-slate-950">Packages</h2>
+              <button onClick={() => setProposalData(prev => ({ ...prev, packages: [...prev.packages, { id: Date.now(), name: "Custom", price: "$0", description: "Describe this package.", deliveryTimeline: "", isVisible: true, isHighlighted: false, features: ["Feature one", "Feature two"] }]}))} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#C5A059] hover:text-slate-950 transition-colors"><Plus size={14}/> Add Package</button>
+            </div>
             {proposalData.packages.map(pkg => (
               <div key={pkg.id} className="border border-slate-100 rounded-2xl p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -845,6 +848,7 @@ const App = () => {
                       <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pkg.isVisible ? 'left-5' : 'left-0.5'}`}/>
                     </button>
                   </div>
+                  <button onClick={() => setProposalData(prev => ({ ...prev, packages: prev.packages.filter(p => p.id !== pkg.id)}))} className="ml-auto text-slate-300 hover:text-rose-400 transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"><Trash2 size={14}/> Remove</button>
                 </div>
               </div>
             ))}
@@ -1010,9 +1014,14 @@ const App = () => {
               <section className="max-w-7xl mx-auto py-24 md:py-32 px-8">
                 <div className="text-center mb-16 md:mb-24">
                   <h2 className="text-4xl md:text-6xl font-serif italic font-black text-slate-950 leading-none mb-8">Your Collection</h2>
-                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Three Paths to Perfection</p>
+                  <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase">Curated For You</p>
                 </div>
-                <div className={`grid gap-8 ${proposalData.packages.filter(p => p.isVisible).length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : 'md:grid-cols-3'}`}>
+                <div className={`grid gap-8 ${
+                  proposalData.packages.filter(p => p.isVisible).length === 1 ? 'max-w-xl mx-auto' :
+                  proposalData.packages.filter(p => p.isVisible).length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' :
+                  proposalData.packages.filter(p => p.isVisible).length === 4 ? 'md:grid-cols-2 lg:grid-cols-4' :
+                  'md:grid-cols-3'
+                }`}>
                   {proposalData.packages.filter(p => p.isVisible).map(item => (
                     <div key={item.id} className={`relative flex flex-col rounded-[3rem] border overflow-hidden transition-all ${item.isHighlighted ? 'bg-slate-950 border-[#C5A059]/30 package-card-featured' : 'bg-white border-slate-100 hover:shadow-xl'}`}>
                       {item.isHighlighted && (
